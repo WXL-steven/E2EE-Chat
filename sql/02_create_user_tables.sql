@@ -12,7 +12,8 @@ CREATE TABLE user_profiles (
     registered_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uk_user_profiles_user_id UNIQUE (user_id),
     CONSTRAINT uk_user_profiles_username UNIQUE (username),
-    CONSTRAINT ck_username_ascii CHECK (username ~ '^[[:ascii:]]{1,16}$')
+    CONSTRAINT ck_username_ascii CHECK (username ~ '^[[:ascii:]]{1,16}$'),
+    CONSTRAINT ck_public_key_length CHECK (public_key IS NULL OR length(public_key) BETWEEN 32 AND 256)
 );
 
 -- 创建用户机密表
@@ -47,7 +48,7 @@ CREATE TABLE user_vaults (
     CONSTRAINT ck_vault_master_key_length CHECK (length(vault_master_key) = 32),
     CONSTRAINT ck_vault_salt_length CHECK (vault_salt IS NULL OR length(vault_salt) = 16),
     CONSTRAINT ck_vault_iv_length CHECK (vault_iv IS NULL OR length(vault_iv) = 12),
-    CONSTRAINT ck_encrypted_private_key_length CHECK (encrypted_private_key IS NULL OR length(encrypted_private_key) BETWEEN 48 AND 64),
+    CONSTRAINT ck_encrypted_private_key_length CHECK (encrypted_private_key IS NULL OR length(encrypted_private_key) BETWEEN 32 AND 256),
     CONSTRAINT ck_vault_ready CHECK (
         (ready = FALSE) OR 
         (ready = TRUE AND vault_salt IS NOT NULL AND vault_iv IS NOT NULL AND encrypted_private_key IS NOT NULL)
@@ -77,5 +78,5 @@ COMMENT ON COLUMN user_vaults.user_id IS '关联的用户UUID';
 COMMENT ON COLUMN user_vaults.vault_master_key IS '保险库主密钥（32字节定长，创建时必需）';
 COMMENT ON COLUMN user_vaults.vault_salt IS '保险库盐值（16字节定长，配置时设置）';
 COMMENT ON COLUMN user_vaults.vault_iv IS '保险库初始化向量（12字节定长，配置时设置）';
-COMMENT ON COLUMN user_vaults.encrypted_private_key IS '加密的用户私钥（48-64字节，配置时设置）';
+COMMENT ON COLUMN user_vaults.encrypted_private_key IS '加密的用户私钥（32-256字节，配置时设置）';
 COMMENT ON COLUMN user_vaults.ready IS '保险库是否配置完成（需要所有加密字段都设置后才能为true）';

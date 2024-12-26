@@ -28,6 +28,8 @@ GRANT EXECUTE ON FUNCTION get_first_unread(UUID, UUID) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION get_messages_before(UUID, UUID, BIGINT, INTEGER) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION get_messages_after(UUID, UUID, BIGINT, INTEGER) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION send_message(UUID, UUID, BYTEA, BYTEA, BOOLEAN) TO e2ee_chat_service;
+GRANT EXECUTE ON FUNCTION get_or_create_session(UUID, UUID) TO e2ee_chat_service;
+GRANT EXECUTE ON FUNCTION get_message(UUID, UUID) TO e2ee_chat_service;
 
 -- 添加注释
 COMMENT ON ROLE e2ee_chat_service IS '端到端加密聊天应用的服务账号，仅具有存储过程执行权限';

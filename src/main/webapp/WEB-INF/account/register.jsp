@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>注册 - E2EE Chat</title>
     <link href="${pageContext.request.contextPath}/assets/css/dist/styles.css" rel="stylesheet">
-    <script src="${pageContext.request.contextPath}/assets/js/forms.js"></script>
 </head>
 <body class="bg-gray-100">
     <div class="content-panel-wrapper">
@@ -156,8 +155,8 @@
             }
             
             // 格式检查
-            if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-                return '用户名只能包含字母、数字、下划线和短横线';
+            if (!/^[a-z0-9_-]+$/.test(username)) {
+                return '用户名只能包含小写字母、数字、下划线和短横线';
             }
 
             // 服务器端验证
@@ -287,43 +286,38 @@
                 // 清除所有错误
                 [usernameInput, displayNameInput, passwordInput, confirmPasswordInput].forEach(clearError);
 
-                // 禁用所有输入和按钮
-                const formElements = form.querySelectorAll('input, button');
-                formElements.forEach(el => el.disabled = true);
+                let isValid = true;
 
-                try {
-                    // 验证所有字段
-                    const usernameError = await validateUsername(usernameInput.value);
-                    if (usernameError) {
-                        showError(usernameInput, usernameError);
-                    }
+                // 验证用户名
+                const usernameError = await validateUsername(usernameInput.value);
+                if (usernameError) {
+                    showError(usernameInput, usernameError);
+                    isValid = false;
+                }
 
-                    const displayNameError = validateDisplayName(displayNameInput.value);
-                    if (displayNameError) {
-                        showError(displayNameInput, displayNameError);
-                    }
+                // 验证昵称
+                const displayNameError = validateDisplayName(displayNameInput.value);
+                if (displayNameError) {
+                    showError(displayNameInput, displayNameError);
+                    isValid = false;
+                }
 
-                    const passwordError = validatePassword(passwordInput.value);
-                    if (passwordError) {
-                        showError(passwordInput, passwordError);
-                    }
+                // 验证密码
+                const passwordError = validatePassword(passwordInput.value);
+                if (passwordError) {
+                    showError(passwordInput, passwordError);
+                    isValid = false;
+                }
 
-                    const confirmPasswordError = validateConfirmPassword(passwordInput.value, confirmPasswordInput.value);
-                    if (confirmPasswordError) {
-                        showError(confirmPasswordInput, confirmPasswordError);
-                    }
+                // 验证确认密码
+                const confirmPasswordError = validateConfirmPassword(passwordInput.value, confirmPasswordInput.value);
+                if (confirmPasswordError) {
+                    showError(confirmPasswordInput, confirmPasswordError);
+                    isValid = false;
+                }
 
-                    // 如果有任何错误，阻止提交
-                    if (usernameError || displayNameError || passwordError || confirmPasswordError) {
-                        throw new Error('表单验证失败');
-                    }
-
-                    // 提交表单
+                if (isValid) {
                     form.submit();
-                } catch (error) {
-                    console.error('表单提交失败:', error);
-                    // 重新启用所有输入和按钮
-                    formElements.forEach(el => el.disabled = false);
                 }
             });
 

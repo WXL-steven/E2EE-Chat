@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - E2EE Chat</title>
     <link href="${pageContext.request.contextPath}/assets/css/dist/styles.css" rel="stylesheet">
-    <script src="${pageContext.request.contextPath}/assets/js/forms.js"></script>
 </head>
 <body class="bg-gray-100">
     <div class="content-panel-wrapper">
@@ -67,6 +66,7 @@
         Boolean shouldRedirect = (Boolean) session.getAttribute("shouldRedirect");
         Boolean persistSession = (Boolean) request.getAttribute("persistSession");
         int weekInSeconds = 7 * 24 * 60 * 60;
+        String sessionId = session.getId();
         
         if (messageLevel != null && messageContent != null) {
             session.removeAttribute("messageLevel");
@@ -99,46 +99,71 @@
             
             <% if (Boolean.TRUE.equals(persistSession)) { %>
             // 持久化会话ID到Cookie
-            document.cookie = 'JSESSIONID=' + '<%= session.getId() %>' + 
-                            '; max-age=' + <%= weekInSeconds %> + 
-                            '; path=/; SameSite=Strict; Secure';
+            document.cookie = `JSESSIONID=${sessionId}; max-age=${weekInSeconds}; path=/; SameSite=Strict`;
             <% } %>
         });
     </script>
     <% } %>
 
     <script>
-        // 初始化表单验证
+        // 验证工具函数
+        function showError(input, message) {
+            const group = input.closest('div');
+            const errorElement = group.querySelector('.input-error-message');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            input.classList.add('input-error');
+        }
+
+        function clearError(input) {
+            const group = input.closest('div');
+            const errorElement = group.querySelector('.input-error-message');
+            errorElement.textContent = '';
+            errorElement.style.display = 'none';
+            input.classList.remove('input-error');
+        }
+
+        // 表单验证
         document.addEventListener('DOMContentLoaded', () => {
-            const formValidation = new FormValidation();
             const form = document.getElementById('loginForm');
             const usernameInput = document.getElementById('username');
             const passwordInput = document.getElementById('password');
-            const registerBtn = document.getElementById('registerBtn');
-            
-            // 设置验证器
-            formValidation.setupUsernameValidation(usernameInput);
-            formValidation.setupPasswordValidation(passwordInput);
-            
-            // 表单提交事件
+
+            // 注册按钮点击事件
+            document.getElementById('registerBtn').addEventListener('click', () => {
+                window.location.href = '${pageContext.request.contextPath}/account/register';
+            });
+
+            // 表单提交验证
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
-                // 验证所有字段
-                const usernameValid = await formValidation.validate(usernameInput);
-                const passwordValid = await formValidation.validate(passwordInput);
+                // 清除所有错误
+                [usernameInput, passwordInput].forEach(clearError);
                 
-                if (!usernameValid.isValid || !passwordValid.isValid) {
-                    return;
+                let isValid = true;
+
+                // 验证用户名
+                if (!usernameInput.value.trim()) {
+                    showError(usernameInput, '请输入用户名');
+                    isValid = false;
+                } else if (usernameInput.value.length < 3 || usernameInput.value.length > 20) {
+                    showError(usernameInput, '用户名长度必须在3-20个字符之间');
+                    isValid = false;
                 }
-                
-                // 提交表单
-                form.submit();
-            });
-            
-            // 注册按钮点击事件
-            registerBtn.addEventListener('click', () => {
-                window.location.href = '${pageContext.request.contextPath}/account/register';
+
+                // 验证密码
+                if (!passwordInput.value) {
+                    showError(passwordInput, '请输入密码');
+                    isValid = false;
+                } else if (passwordInput.value.length < 6 || passwordInput.value.length > 20) {
+                    showError(passwordInput, '密码长度必须在6-20个字符之间');
+                    isValid = false;
+                }
+
+                if (isValid) {
+                    form.submit();
+                }
             });
         });
     </script>

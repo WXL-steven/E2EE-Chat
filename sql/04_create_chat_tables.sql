@@ -9,8 +9,8 @@ CREATE TABLE chat_sessions (
     participant_id UUID NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     message_counter BIGINT NOT NULL DEFAULT 0,
-    last_message_id UUID,
-    last_message_at TIMESTAMPTZ,
+    last_message_id UUID NULL DEFAULT NULL,
+    last_message_at TIMESTAMPTZ NULL DEFAULT NULL,
     CONSTRAINT uk_chat_sessions_session_id UNIQUE (session_id),
     CONSTRAINT fk_chat_sessions_initiator FOREIGN KEY (initiator_id) 
         REFERENCES user_profiles(user_id),

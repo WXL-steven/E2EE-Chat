@@ -96,7 +96,8 @@ CREATE OR REPLACE FUNCTION get_messages_before(
 ) RETURNS TABLE(
     message_id UUID,
     cursor BIGINT,
-    is_sender BOOLEAN,
+    sender_id UUID,
+    receiver_id UUID,
     is_system BOOLEAN,
     is_read BOOLEAN,
     message_iv BYTEA,
@@ -131,7 +132,8 @@ BEGIN
     RETURN QUERY
     SELECT m.message_id,
            m.cursor,
-           m.sender_id = p_user_id,
+           m.sender_id,
+           m.receiver_id,
            m.is_system,
            m.is_read,
            m.message_iv,
@@ -153,7 +155,8 @@ CREATE OR REPLACE FUNCTION get_messages_after(
 ) RETURNS TABLE(
     message_id UUID,
     cursor BIGINT,
-    is_sender BOOLEAN,
+    sender_id UUID,
+    receiver_id UUID,
     is_system BOOLEAN,
     is_read BOOLEAN,
     message_iv BYTEA,
@@ -188,7 +191,8 @@ BEGIN
     RETURN QUERY
     SELECT m.message_id,
            m.cursor,
-           m.sender_id = p_user_id,
+           m.sender_id,
+           m.receiver_id,
            m.is_system,
            m.is_read,
            m.message_iv,
@@ -269,6 +273,93 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 获取或创建会话函数
+CREATE OR REPLACE FUNCTION get_or_create_session(
+    p_user_id UUID,
+    p_other_user_id UUID
+) RETURNS UUID
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_session_id UUID;
+BEGIN
+    -- 更新最后在线时间
+    PERFORM update_last_online(p_user_id);
+    
+    -- 检查用户是否存在
+    IF NOT EXISTS (SELECT 1 FROM user_profiles WHERE user_id = p_other_user_id) THEN
+        RETURN NULL;
+    END IF;
+    
+    -- 检查是否已存在会话（不区分发起者和参与者）
+    SELECT session_id INTO v_session_id
+    FROM chat_sessions
+    WHERE (initiator_id = LEAST(p_user_id, p_other_user_id) 
+       AND participant_id = GREATEST(p_user_id, p_other_user_id));
+    
+    -- 如果会话不存在则创建新会话
+    IF v_session_id IS NULL THEN
+        INSERT INTO chat_sessions (
+            initiator_id,
+            participant_id
+        ) VALUES (
+            LEAST(p_user_id, p_other_user_id),
+            GREATEST(p_user_id, p_other_user_id)
+        )
+        RETURNING session_id INTO v_session_id;
+    END IF;
+    
+    RETURN v_session_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 获取指定消息函数
+CREATE OR REPLACE FUNCTION get_message(
+    p_user_id UUID,
+    p_message_id UUID
+) RETURNS TABLE(
+    message_id UUID,
+    session_id UUID,
+    cursor BIGINT,
+    sender_id UUID,
+    receiver_id UUID,
+    is_system BOOLEAN,
+    is_read BOOLEAN,
+    message_iv BYTEA,
+    message_content BYTEA
+)
+SECURITY DEFINER
+AS $$
+BEGIN
+    -- 更新最后在线时间
+    PERFORM update_last_online(p_user_id);
+    
+    -- 返回消息信息（仅当用户是消息的发送者或接收者时）
+    RETURN QUERY
+    SELECT m.message_id,
+           m.session_id,
+           m.cursor,
+           m.sender_id,
+           m.receiver_id,
+           m.is_system,
+           m.is_read,
+           m.message_iv,
+           m.message_content
+    FROM chat_messages m
+    JOIN chat_sessions s ON m.session_id = s.session_id
+    WHERE m.message_id = p_message_id
+      AND (s.initiator_id = p_user_id OR s.participant_id = p_user_id)
+    LIMIT 1;
+    
+    -- 如果用户是接收者且消息未读，标记为已读
+    UPDATE chat_messages
+    SET is_read = TRUE
+    WHERE message_id = p_message_id
+      AND receiver_id = p_user_id
+      AND is_read = FALSE;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 添加函数注释
 COMMENT ON FUNCTION get_recent_sessions IS '获取用户最近会话列表，按最后消息时间降序排序';
 COMMENT ON FUNCTION get_unread_count IS '获取会话中用户的未读消息数量';
@@ -276,3 +367,5 @@ COMMENT ON FUNCTION get_first_unread IS '获取会话中用户的首条未读消
 COMMENT ON FUNCTION get_messages_before IS '获取指定游标之前的消息，自动标记接收消息为已读';
 COMMENT ON FUNCTION get_messages_after IS '获取指定游标之后的消息，自动标记接收消息为已读';
 COMMENT ON FUNCTION send_message IS '发送新消息，自动更新会话信息';
+COMMENT ON FUNCTION get_or_create_session IS '获取或创建会话，若会话不存在则创建新会话';
+COMMENT ON FUNCTION get_message IS '获取指定消息，自动标记接收消息为已读';

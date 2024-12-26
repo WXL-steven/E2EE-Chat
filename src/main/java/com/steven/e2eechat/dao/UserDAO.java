@@ -53,6 +53,7 @@ public class UserDAO {
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
             stmt.setString(1, username);
             stmt.setString(2, displayName);
             stmt.setBytes(3, passwordHash);
@@ -62,10 +63,15 @@ public class UserDAO {
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 UUID userId = (UUID) rs.getObject(1);
-                return userId != null ? Optional.of(userId) : Optional.empty();
+                return Optional.ofNullable(userId);
             }
             return Optional.empty();
         } catch (SQLException e) {
+            System.err.println("SQL error occurred during registration:");
+            System.err.println("Error code: " + e.getErrorCode());
+            System.err.println("SQL state: " + e.getSQLState());
+            System.err.println("Error message: " + e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("用户注册失败", e);
         }
     }
@@ -185,6 +191,7 @@ public class UserDAO {
                 vault.setVaultSalt(rs.getBytes("vault_salt"));
                 vault.setVaultIv(rs.getBytes("vault_iv"));
                 vault.setEncryptedPrivateKey(rs.getBytes("encrypted_private_key"));
+                vault.setReady(rs.getBoolean("ready"));
                 return Optional.of(vault);
             }
             return Optional.empty();

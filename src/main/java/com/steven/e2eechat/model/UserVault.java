@@ -6,51 +6,21 @@ import java.util.UUID;
  * 用户保险库模型
  * 对应数据库中的user_vaults表
  * 用于存储用户的加密相关信息
+ *
+ * 实例特性：
+ * - userId: 用户唯一标识，关联到user_profiles表的user_id
+ * - vaultMasterKey: 保险库主密钥，固定长度32字节，在用户注册时生成，用于加密其他密钥
+ * - vaultSalt: 保险库盐值，固定长度16字节，在创建保险库时生成，用于密钥派生
+ * - vaultIv: 保险库初始化向量，固定长度12字节，在创建保险库时生成，用于AES-GCM加密
+ * - encryptedPrivateKey: 加密的私钥，长度范围48-64字节，使用派生密钥加密的用户私钥，配对的公钥存储在user_profiles表中
+ * - ready: 保险库就绪状态，true表示保险库配置完成可以使用，false表示保险库未完成配置（仅有主密钥）
  */
 public class UserVault {
-    /**
-     * 用户唯一标识
-     * 关联到user_profiles表的user_id
-     */
     private UUID userId;
-
-    /**
-     * 保险库主密钥
-     * - 固定长度：32字节
-     * - 在用户注册时生成
-     * - 用于加密其他密钥
-     */
     private byte[] vaultMasterKey;
-
-    /**
-     * 保险库盐值
-     * - 固定长度：16字节
-     * - 在创建保险库时生成
-     * - 用于密钥派生
-     */
     private byte[] vaultSalt;
-
-    /**
-     * 保险库初始化向量
-     * - 固定长度：12字节
-     * - 在创建保险库时生成
-     * - 用于AES-GCM加密
-     */
     private byte[] vaultIv;
-
-    /**
-     * 加密的私钥
-     * - 长度范围：48-64字节
-     * - 使用派生密钥加密的用户私钥
-     * - 配对的公钥存储在user_profiles表中
-     */
     private byte[] encryptedPrivateKey;
-
-    /**
-     * 保险库就绪状态
-     * - true：保险库配置完成，可以使用
-     * - false：保险库未完成配置（仅有主密钥）
-     */
     private boolean ready;
 
     // Getters and Setters

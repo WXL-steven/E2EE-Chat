@@ -55,7 +55,7 @@ BEGIN
     BEGIN
         -- 插入用户资料
         INSERT INTO user_profiles (user_id, username, display_name, public_key, registered_at)
-        VALUES (p_user_id, p_username, p_display_name, '\x'::BYTEA, p_registered_at);
+        VALUES (p_user_id, p_username, p_display_name, NULL, p_registered_at);
         
         -- 插入用户凭证
         INSERT INTO user_credentials (user_id, password_hash, password_salt)
@@ -143,8 +143,10 @@ BEGIN
     -- 验证输入长度
     IF length(p_vault_salt) != 16 OR 
        length(p_vault_iv) != 12 OR 
-       length(p_encrypted_private_key) < 48 OR 
-       length(p_encrypted_private_key) > 64
+       length(p_encrypted_private_key) < 32 OR 
+       length(p_encrypted_private_key) > 256 OR
+       length(p_public_key) < 32 OR
+       length(p_public_key) > 256
     THEN
         RETURN FALSE;
     END IF;
@@ -184,7 +186,8 @@ CREATE OR REPLACE FUNCTION get_vault(
     vault_master_key BYTEA,
     vault_salt BYTEA,
     vault_iv BYTEA,
-    encrypted_private_key BYTEA
+    encrypted_private_key BYTEA,
+    ready BOOLEAN
 )
 SECURITY DEFINER
 AS $$
@@ -193,7 +196,8 @@ BEGIN
     SELECT v.vault_master_key,
            v.vault_salt,
            v.vault_iv,
-           v.encrypted_private_key
+           v.encrypted_private_key,
+           v.ready
     FROM user_vaults v
     WHERE v.user_id = p_user_id;
 END;

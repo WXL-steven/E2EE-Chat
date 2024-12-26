@@ -83,4 +83,22 @@ public class UserService {
         // 获取用户信息
         return userId.flatMap(userDAO::getUserProfile);
     }
+
+    /**
+     * 获取用户资料
+     * @param userId 用户ID
+     * @return 如果用户存在返回用户资料，否则返回空
+     */
+    public Optional<UserProfile> getUserById(UUID userId) {
+        return userDAO.getUserProfile(userId);
+    }
+
+    /**
+     * 刷新用户最后在线时间
+     * 通常由存储过程自动调用，此方法仅用于特殊情况
+     * @param userId 用户ID
+     */
+    public void updateLastOnline(UUID userId) {
+        userDAO.updateLastOnline(userId, null);
+    }
 }
