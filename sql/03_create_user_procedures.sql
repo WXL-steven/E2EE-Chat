@@ -30,7 +30,7 @@ CREATE OR REPLACE FUNCTION register_user(
     p_vault_master_key BYTEA,
     p_user_id UUID DEFAULT gen_random_uuid(),
     p_registered_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-) RETURNS BOOLEAN
+) RETURNS UUID
 SECURITY DEFINER
 AS $$
 DECLARE
@@ -38,17 +38,17 @@ DECLARE
 BEGIN
     -- 验证用户名可用性
     IF NOT check_username_available(p_username) THEN
-        RETURN FALSE;
+        RETURN NULL;
     END IF;
     
     -- 验证UUID唯一性
     IF EXISTS (SELECT 1 FROM user_profiles WHERE user_id = p_user_id) THEN
-        RETURN FALSE;
+        RETURN NULL;
     END IF;
     
     -- 验证输入长度
     IF length(p_password_hash) != 32 OR length(p_password_salt) != 16 OR length(p_vault_master_key) != 32 THEN
-        RETURN FALSE;
+        RETURN NULL;
     END IF;
     
     -- 开始事务
@@ -68,10 +68,14 @@ BEGIN
         v_success := TRUE;
     EXCEPTION
         WHEN OTHERS THEN
-            v_success := FALSE;
+            RETURN NULL;
     END;
     
-    RETURN v_success;
+    IF v_success THEN
+        RETURN p_user_id;
+    ELSE
+        RETURN NULL;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -113,51 +117,63 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 创建用户保险库函数
+-- 完成用户保险库配置函数
 CREATE OR REPLACE FUNCTION create_vault(
     p_user_id UUID,
     p_vault_salt BYTEA,
     p_vault_iv BYTEA,
-    p_encrypted_private_key BYTEA
+    p_encrypted_private_key BYTEA,
+    p_public_key BYTEA
 ) RETURNS BOOLEAN
 SECURITY DEFINER
 AS $$
 DECLARE
-    v_success BOOLEAN;
+    v_ready BOOLEAN;
 BEGIN
-    -- 验证输入长度
-    IF length(p_vault_salt) != 16 OR 
-       length(p_vault_iv) != 12 OR 
-       length(p_encrypted_private_key) < 48 OR 
-       length(p_encrypted_private_key) > 64 THEN
-        RETURN FALSE;
-    END IF;
-    
-    -- 验证用户存在且保险库未就绪
+    -- 验证用户ID存在且保险库未就绪
     IF NOT EXISTS (
-        SELECT 1 FROM user_vaults 
-        WHERE user_id = p_user_id 
-        AND ready = FALSE
+        SELECT 1 FROM user_vaults v
+        JOIN user_profiles p ON p.user_id = v.user_id
+        WHERE v.user_id = p_user_id 
+        AND v.ready = FALSE
     ) THEN
         RETURN FALSE;
     END IF;
     
-    -- 更新保险库
+    -- 验证输入长度
+    IF length(p_vault_salt) != 16 OR 
+       length(p_vault_iv) != 12 OR 
+       length(p_encrypted_private_key) < 48 OR 
+       length(p_encrypted_private_key) > 64
+    THEN
+        RETURN FALSE;
+    END IF;
+    
+    -- 开始事务
     BEGIN
-        UPDATE user_vaults 
+        -- 更新用户公钥
+        UPDATE user_profiles
+        SET public_key = p_public_key
+        WHERE user_id = p_user_id;
+        
+        -- 更新保险库并设置ready为true
+        UPDATE user_vaults
         SET vault_salt = p_vault_salt,
             vault_iv = p_vault_iv,
             encrypted_private_key = p_encrypted_private_key,
             ready = TRUE
-        WHERE user_id = p_user_id;
+        WHERE user_id = p_user_id
+        RETURNING ready INTO v_ready;
         
-        v_success := TRUE;
+        IF v_ready IS NULL OR NOT v_ready THEN
+            RETURN FALSE;
+        END IF;
     EXCEPTION
         WHEN OTHERS THEN
-            v_success := FALSE;
+            RETURN FALSE;
     END;
     
-    RETURN v_success;
+    RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql;
 

@@ -128,6 +128,22 @@ mvn clean package
 cp target/e2ee-chat.war $CATALINA_HOME/webapps/
 ```
 
+## CSS编译
+
+本项目使用Tailwind CSS进行样式管理。CSS源码位于`src/main/webapp/assets/css/dev`目录，编译后的CSS文件位于`src/main/webapp/assets/css/dist`目录。
+
+### 编译CSS
+
+```bash
+bunx tailwindcss -i ./src/main/webapp/assets/css/dev/styles.css -o ./src/main/webapp/assets/css/dist/styles.css
+```
+
+### 监视CSS变化
+
+```bash
+bunx tailwindcss -i ./src/main/webapp/assets/css/dev/styles.css -o ./src/main/webapp/assets/css/dist/styles.css --watch
+```
+
 ## 许可证
 
 本项目采用 Apache License 2.0 许可证

@@ -45,6 +45,9 @@
   * 会话token管理
   * 密钥对存储管理
   * XSS防护
+- CryptoService - 密码学服务
+  * 密码散列和验证
+  * 随机数生成
 
 ### 2.3 Controller层
 - AuthController - 认证相关控制器
@@ -167,3 +170,90 @@
    - 使用Optional返回可能不存在的数据
    - 通过布尔返回值表示操作结果，避免异常传播
    - 所有数据验证在DAO层完成，确保数据一致性
+
+### CryptoService详细设计
+
+#### 类特性和常量
+```java
+private static final int ARGON2_TYPE = Argon2Parameters.ARGON2_id;  // Argon2id变体
+private static final int SALT_LENGTH = 16;       // 盐长度（字节）
+private static final int HASH_LENGTH = 32;       // 散列长度（字节）
+private static final int ITERATIONS = 3;         // 迭代次数
+private static final int MEMORY = 64 * 1024;     // 内存参数（64MB）
+private static final int PARALLELISM = 1;        // 并行度
+```
+
+#### 方法定义
+
+###### 1. hashPassword
+生成密码的散列值和盐。
+
+```java
+public record PasswordHash(byte[] hash, byte[] salt) {}
+
+/**
+ * 对密码进行散列
+ * @param password 原始密码字符串
+ * @return 包含32字节散列值和16字节盐的记录
+ */
+public PasswordHash hashPassword(String password)
+```
+
+###### 2. verifyPassword
+使用给定的盐验证密码。
+
+```java
+/**
+ * 验证密码
+ * @param password 待验证的密码
+ * @param salt 16字节盐值
+ * @return 32字节散列值
+ */
+public byte[] verifyPassword(String password, byte[] salt)
+```
+
+###### 3. generateSecureBytes
+生成指定长度的安全随机字节。
+
+```java
+/**
+ * 生成密码学安全的随机字节
+ * @param length 需要的字节数
+ * @return 指定长度的随机字节数组
+ */
+public byte[] generateSecureBytes(int length)
+```
+
+#### 实现细节
+1. **密码散列**
+   - 使用 Bouncy Castle 的 Argon2 实现
+   - 自动生成16字节随机盐
+   - 返回32字节的散列结果
+
+2. **密码验证**
+   - 使用相同的 Argon2 参数
+   - 使用提供的盐重新计算散列
+   - 返回计算得到的散列值
+
+3. **随机数生成**
+   - 使用 SecureRandom 的默认提供者
+   - 确保生成的随机数适用于密码学用途
+
+4. **错误处理**
+   - 对输入参数进行严格验证
+   - 提供详细的异常信息
+   - 确保敏感数据被正确清理
+
+#### 使用示例
+```java
+// 创建新密码
+PasswordHash result = cryptoService.hashPassword("mypassword");
+byte[] hash = result.hash();    // 32字节散列
+byte[] salt = result.salt();    // 16字节盐
+
+// 验证密码
+byte[] verifyHash = cryptoService.verifyPassword("mypassword", salt);
+boolean matches = Arrays.equals(hash, verifyHash);
+
+// 生成随机字节
+byte[] random16 = cryptoService.generateSecureBytes(16);  // 16字节随机数

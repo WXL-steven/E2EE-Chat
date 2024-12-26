@@ -4,134 +4,104 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * 用户资料实体类
- * 存储用户的基本信息，包括用户名、显示名称、公钥等
+ * 用户资料模型
+ * 对应数据库中的user_profiles表
  */
 public class UserProfile {
-    /** 数据库自增主键，仅用于内部索引 */
-    private Long idx;
-    /** 用户唯一标识符（UUID） */
+    /**
+     * 用户唯一标识
+     * UUID格式，由系统自动生成
+     */
     private UUID userId;
-    /** 用户名（仅ASCII字符，最长16字符） */
+
+    /**
+     * 用户名
+     * 限制：
+     * - 长度：1-16个字符
+     * - 字符集：仅ASCII字符（字母、数字、下划线、连字符）
+     * - 格式：^[a-zA-Z0-9_-]{1,16}$
+     * - 唯一性：在系统中必须唯一
+     */
     private String username;
-    /** 显示名称（UTF-8字符串，最长32字符） */
+
+    /**
+     * 显示名称
+     * 限制：
+     * - 长度：1-32个字符
+     * - 字符集：UTF-8编码的Unicode字符
+     * - 用于界面显示，支持各种语言
+     */
     private String displayName;
-    /** 用户公钥（字节数组） */
+
+    /**
+     * 用户公钥
+     * - 用于端到端加密
+     * - 可为空（注册时为空，创建保险库时设置）
+     * - 使用Base64编码存储
+     */
     private byte[] publicKey;
-    /** 最后在线时间（带时区） */
+
+    /**
+     * 最后在线时间
+     * - 使用带时区的时间戳
+     * - 由系统自动更新
+     * - 用于显示用户状态
+     */
     private OffsetDateTime lastOnline;
-    /** 注册时间（带时区） */
+
+    /**
+     * 注册时间
+     * - 使用带时区的时间戳
+     * - 由系统在用户注册时自动设置
+     * - 不可修改
+     */
     private OffsetDateTime registeredAt;
 
     // Getters and Setters
-    /**
-     * 获取数据库自增主键
-     * @return idx
-     */
-    public Long getIdx() {
-        return idx;
-    }
-
-    /**
-     * 设置数据库自增主键
-     * @param idx idx
-     */
-    public void setIdx(Long idx) {
-        this.idx = idx;
-    }
-
-    /**
-     * 获取用户唯一标识符（UUID）
-     * @return userId
-     */
     public UUID getUserId() {
         return userId;
     }
 
-    /**
-     * 设置用户唯一标识符（UUID）
-     * @param userId userId
-     */
     public void setUserId(UUID userId) {
         this.userId = userId;
     }
 
-    /**
-     * 获取用户名（仅ASCII字符，最长16字符）
-     * @return username
-     */
     public String getUsername() {
         return username;
     }
 
-    /**
-     * 设置用户名（仅ASCII字符，最长16字符）
-     * @param username username
-     */
     public void setUsername(String username) {
         this.username = username;
     }
 
-    /**
-     * 获取显示名称（UTF-8字符串，最长32字符）
-     * @return displayName
-     */
     public String getDisplayName() {
         return displayName;
     }
 
-    /**
-     * 设置显示名称（UTF-8字符串，最长32字符）
-     * @param displayName displayName
-     */
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
     }
 
-    /**
-     * 获取用户公钥（字节数组）
-     * @return publicKey
-     */
     public byte[] getPublicKey() {
         return publicKey;
     }
 
-    /**
-     * 设置用户公钥（字节数组）
-     * @param publicKey publicKey
-     */
     public void setPublicKey(byte[] publicKey) {
         this.publicKey = publicKey;
     }
 
-    /**
-     * 获取最后在线时间（带时区）
-     * @return lastOnline
-     */
     public OffsetDateTime getLastOnline() {
         return lastOnline;
     }
 
-    /**
-     * 设置最后在线时间（带时区）
-     * @param lastOnline lastOnline
-     */
     public void setLastOnline(OffsetDateTime lastOnline) {
         this.lastOnline = lastOnline;
     }
 
-    /**
-     * 获取注册时间（带时区）
-     * @return registeredAt
-     */
     public OffsetDateTime getRegisteredAt() {
         return registeredAt;
     }
 
-    /**
-     * 设置注册时间（带时区）
-     * @param registeredAt registeredAt
-     */
     public void setRegisteredAt(OffsetDateTime registeredAt) {
         this.registeredAt = registeredAt;
     }

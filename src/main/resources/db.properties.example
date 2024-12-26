@@ -1,0 +1,7 @@
+db.url=jdbc:postgresql://localhost:5433/e2ee_chat
+db.username=e2ee_chat_service
+db.password=your_password_here
+db.poolSize=10
+db.connectionTimeout=30000
+db.idleTimeout=600000
+db.maxLifetime=1800000

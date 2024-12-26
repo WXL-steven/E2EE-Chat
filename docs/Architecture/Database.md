@@ -20,7 +20,7 @@
 | user_id | UUID | 否 | gen_random_uuid() | UQ | IX | 用户唯一标识 |
 | username | VARCHAR(16) | 否 | - | UQ | IX | 用户名，仅ASCII字符 |
 | display_name | VARCHAR(32) | 否 | - | - | - | UTF-8字符串 |
-| public_key | BYTEA | 否 | - | - | - | 用户公钥 |
+| public_key | BYTEA | 是 | - | - | - | 用户公钥 |
 | last_online | TIMESTAMPTZ | 否 | CURRENT_TIMESTAMP | - | - | 最后在线时间 |
 | registered_at | TIMESTAMPTZ | 否 | CURRENT_TIMESTAMP | - | - | 注册时间 |
 
@@ -58,7 +58,7 @@
 - vault_salt: 固定长度16字节（配置时设置）
 - vault_iv: 固定长度12字节（配置时设置）
 - encrypted_private_key: 长度在48-64字节之间（配置时设置）
-- ready: 只有当所有加密字段都设置后才能为true
+- ready: 只有当所有加密字段都设置且用户公钥已设置后才能为true
 - FK: user_id REFERENCES user_profiles ON DELETE CASCADE
 
 ### 2.2 会话相关表
@@ -231,11 +231,13 @@
   - vault_salt (BYTEA): 16字节定长
   - vault_iv (BYTEA): 12字节定长
   - encrypted_private_key (BYTEA): 48-64字节
+  - public_key (BYTEA): 用户公钥
 - **返回值**：BOOLEAN
 - **验证规则**：
   - 验证user_id存在且ready为False
   - 验证所有输入的字节长度
-  - 更新保险库信息并设置ready为True
+  - 更新用户公钥和保险库信息
+  - 设置ready为True
 
 #### 4.2.2 get_vault
 获取用户保险库信息

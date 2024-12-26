@@ -84,3 +84,10 @@ ehthumbs.db
 Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+
+### Compiled Assets ###
+src/main/webapp/assets/css/dist/
+src/main/webapp/assets/js/dist/
+
+# Database Configuration
+src/main/resources/db.properties

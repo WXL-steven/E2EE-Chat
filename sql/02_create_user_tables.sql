@@ -7,7 +7,7 @@ CREATE TABLE user_profiles (
     user_id UUID NOT NULL DEFAULT gen_random_uuid(),
     username VARCHAR(16) NOT NULL,
     display_name VARCHAR(32) NOT NULL,
-    public_key BYTEA NOT NULL,
+    public_key BYTEA,
     last_online TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     registered_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uk_user_profiles_user_id UNIQUE (user_id),

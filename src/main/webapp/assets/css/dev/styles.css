@@ -1,0 +1,257 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  /* 主容器 */
+  .container-main {
+    @apply w-full min-h-[200px] 
+           h-screen sm:h-auto
+           p-4 sm:p-6 m-0 sm:m-4
+           bg-white rounded-none sm:rounded-2xl shadow-lg
+           flex flex-col items-center
+           overflow-y-auto overflow-x-hidden
+           sm:max-w-[calc(100%-2rem)] md:max-w-[calc(762px-2rem)] md:mx-auto;
+  }
+  
+  /* 内容面板容器 */
+  .content-panel {
+    @apply w-full h-screen
+           p-8 m-0
+           bg-white rounded-none
+           flex flex-col items-center
+           overflow-y-auto overflow-x-hidden
+           sm:h-fit sm:min-h-[200px]
+           sm:max-w-[calc(762px-2rem)] sm:mx-auto
+           sm:my-4
+           sm:rounded-2xl
+           sm:shadow-lg;
+  }
+
+  /* 内容面板的父容器 */
+  .content-panel-wrapper {
+    @apply min-h-screen
+           sm:py-4 sm:flex sm:items-center;
+  }
+
+  /* 按钮基础样式 */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200
+           focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50;
+  }
+
+  /* 主要按钮 */
+  .btn-primary {
+    @apply btn bg-blue-600 text-white hover:bg-blue-700 
+           focus:ring-blue-500;
+  }
+
+  /* 次要按钮 */
+  .btn-secondary {
+    @apply btn bg-gray-200 text-gray-700 hover:bg-gray-300 
+           focus:ring-gray-400;
+  }
+
+  /* 警告按钮 */
+  .btn-warning {
+    @apply btn bg-red-600 text-white hover:bg-red-700 
+           focus:ring-red-500;
+  }
+
+  /* 输入框基础样式 */
+  .input-base {
+    @apply w-full px-4 py-2 rounded-lg
+           border border-gray-300
+           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+           disabled:bg-gray-100 disabled:cursor-not-allowed
+           transition-colors duration-200;
+  }
+
+  /* 输入框验证失败样式 */
+  .input-base.input-error {
+    @apply border-red-500;
+  }
+
+  .input-base.input-error:focus {
+    @apply ring-red-500 border-transparent;
+  }
+
+  /* 验证失败消息 */
+  .input-error-message {
+    @apply text-red-500 text-sm mt-1 hidden;
+  }
+
+  .input-error-message.show {
+    @apply block;
+  }
+
+  /* 单行文本框 */
+  .input-text {
+    @apply input-base;
+  }
+
+  /* 密码框 */
+  .input-password {
+    @apply input-base;
+  }
+
+  /* PIN输入框 */
+  .input-pin {
+    @apply w-12 h-16 text-2xl text-center font-bold
+           rounded-lg border-2 border-gray-300
+           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  }
+
+  /* 多行文本框 */
+  .input-textarea {
+    @apply input-base resize-none border-0 focus:ring-0
+           min-h-[2.5rem] max-h-[calc(2.5rem*4.5)] overflow-y-auto;
+  }
+
+  .input-textarea::-webkit-scrollbar {
+    @apply hidden;
+  }
+
+  /* 分割线 */
+  .divider {
+    @apply w-full h-px my-4 bg-gray-200;
+  }
+
+  .divider-text {
+    @apply relative w-full h-px my-4 bg-gray-200;
+  }
+
+  .divider-text::before {
+    @apply absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+           bg-white px-4 text-gray-500 text-sm;
+    content: attr(data-text);
+  }
+
+  /* 提示条基础样式 */
+  .alert {
+    @apply w-full p-4 mb-4 rounded-lg;
+  }
+
+  /* 成功提示 */
+  .alert-success {
+    @apply alert bg-green-100 text-green-700 border border-green-200;
+  }
+
+  /* 警告提示 */
+  .alert-warning {
+    @apply alert bg-yellow-100 text-yellow-700 border border-yellow-200;
+  }
+
+  /* 错误提示 */
+  .alert-error {
+    @apply alert bg-red-100 text-red-700 border border-red-200;
+  }
+
+  /* 弹出菜单容器 */
+  .dropdown {
+    @apply relative inline-block;
+  }
+
+  /* 弹出菜单内容 */
+  .dropdown-menu {
+    @apply absolute right-0 mt-2 min-w-fit max-w-[200px] rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5
+           transform opacity-0 scale-95 invisible
+           transition-all duration-200 ease-out
+           z-50;
+  }
+
+  /* 弹出菜单可见状态 */
+  .dropdown-menu.show {
+    @apply opacity-100 scale-100 visible;
+  }
+
+  /* 弹出菜单项 */
+  .dropdown-item {
+    @apply block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100
+           first:rounded-t-lg last:rounded-b-lg;
+  }
+
+  /* 警告菜单项 */
+  .dropdown-item-warning {
+    @apply dropdown-item text-red-600 hover:bg-red-50;
+  }
+
+  /* 头像框 */
+  .avatar {
+    @apply w-10 h-10 rounded-full flex items-center justify-center text-lg font-medium text-white;
+  }
+
+  /* 图标按钮 */
+  .btn-icon {
+    @apply w-10 h-10 rounded-full flex items-center justify-center
+           transition-colors duration-200
+           focus:outline-none focus:ring-2 focus:ring-offset-2
+           disabled:opacity-50;
+  }
+
+  .btn-icon-primary {
+    @apply btn-icon bg-blue-600 text-white hover:bg-blue-700 
+           focus:ring-blue-500;
+  }
+
+  .btn-icon-secondary {
+    @apply btn-icon bg-gray-200 text-gray-700 hover:bg-gray-300 
+           focus:ring-gray-400;
+  }
+
+  /* 消息泡 */
+  .message-bubble {
+    @apply max-w-[400px] p-3 rounded-2xl mb-2 relative pb-6;
+  }
+
+  /* 接收的消息 */
+  .message-received {
+    @apply message-bubble bg-gray-100 text-gray-800;
+  }
+
+  /* 发送的消息 */
+  .message-sent {
+    @apply message-bubble bg-blue-600 text-white ml-auto;
+  }
+
+  /* 日期泡 */
+  .message-date {
+    @apply w-fit mx-auto px-4 py-1 rounded-full bg-gray-100/75 
+           text-gray-600 text-sm mb-4;
+  }
+
+  /* 消息时间 */
+  .message-time {
+    @apply text-xs absolute bottom-2 left-auto right-3 opacity-75;
+  }
+
+  .message-sent .message-time {
+    @apply text-white/75;
+  }
+
+  /* 消息格式化 */
+  .message-monospace {
+    @apply font-mono;
+  }
+
+  .message-bold {
+    @apply font-bold;
+  }
+
+  .message-italic {
+    @apply italic;
+  }
+
+  .message-underline {
+    @apply underline;
+  }
+
+  .message-strikethrough {
+    @apply line-through;
+  }
+
+  /* 复选框 */
+  .input-checkbox {
+    @apply flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none;
+  }
+}

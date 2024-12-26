@@ -2,7 +2,7 @@
 \c e2ee_chat
 
 -- 创建机器账号
-CREATE USER e2ee_chat_service WITH PASSWORD 'your_strong_password_here';
+CREATE USER e2ee_chat_service WITH PASSWORD 'your_password_here';
 
 -- 限制数据库访问
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM e2ee_chat_service;
@@ -17,7 +17,7 @@ GRANT EXECUTE ON FUNCTION check_username_available(VARCHAR) TO e2ee_chat_service
 GRANT EXECUTE ON FUNCTION register_user(VARCHAR, VARCHAR, BYTEA, BYTEA, BYTEA, UUID, TIMESTAMPTZ) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION get_user_salt(VARCHAR) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION verify_login(UUID, BYTEA) TO e2ee_chat_service;
-GRANT EXECUTE ON FUNCTION create_vault(UUID, BYTEA, BYTEA, BYTEA) TO e2ee_chat_service;
+GRANT EXECUTE ON FUNCTION create_vault(UUID, BYTEA, BYTEA, BYTEA, BYTEA) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION get_vault(UUID) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION get_user_profile(UUID) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION update_last_online(UUID, TIMESTAMPTZ) TO e2ee_chat_service;
