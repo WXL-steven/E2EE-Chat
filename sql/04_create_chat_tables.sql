@@ -31,6 +31,7 @@ CREATE TABLE chat_messages (
     message_content BYTEA NOT NULL,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     is_system BOOLEAN NOT NULL DEFAULT FALSE,
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uk_chat_messages_message_id UNIQUE (message_id),
     CONSTRAINT uk_chat_messages_session_cursor UNIQUE (session_id, cursor),
     CONSTRAINT fk_chat_messages_session FOREIGN KEY (session_id) 
@@ -88,3 +89,4 @@ COMMENT ON COLUMN chat_messages.message_iv IS '消息初始化向量（12字节�
 COMMENT ON COLUMN chat_messages.message_content IS '消息密文';
 COMMENT ON COLUMN chat_messages.is_read IS '消息是否已读';
 COMMENT ON COLUMN chat_messages.is_system IS '是否为系统消息';
+COMMENT ON COLUMN chat_messages.sent_at IS '消息发送时间';

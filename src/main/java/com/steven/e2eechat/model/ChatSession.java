@@ -1,6 +1,7 @@
 package com.steven.e2eechat.model;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -21,8 +22,8 @@ public class ChatSession {
     private UUID participantId;
     private OffsetDateTime createdAt;
     private long messageCounter;
-    private UUID lastMessageId;
-    private OffsetDateTime lastMessageAt;
+    private Optional<UUID> lastMessageId = Optional.empty();
+    private Optional<OffsetDateTime> lastMessageAt = Optional.empty();
 
     // Getters and Setters
     public UUID getSessionId() {
@@ -65,19 +66,19 @@ public class ChatSession {
         this.messageCounter = messageCounter;
     }
 
-    public UUID getLastMessageId() {
+    public Optional<UUID> getLastMessageId() {
         return lastMessageId;
     }
 
     public void setLastMessageId(UUID lastMessageId) {
-        this.lastMessageId = lastMessageId;
+        this.lastMessageId = Optional.ofNullable(lastMessageId);
     }
 
-    public OffsetDateTime getLastMessageAt() {
+    public Optional<OffsetDateTime> getLastMessageAt() {
         return lastMessageAt;
     }
 
     public void setLastMessageAt(OffsetDateTime lastMessageAt) {
-        this.lastMessageAt = lastMessageAt;
+        this.lastMessageAt = Optional.ofNullable(lastMessageAt);
     }
 }

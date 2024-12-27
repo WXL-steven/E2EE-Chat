@@ -94,6 +94,15 @@ public class UserService {
     }
 
     /**
+     * 通过用户名获取用户UUID
+     * @param username 用户名
+     * @return 如果用户存在返回用户UUID，否则返回空
+     */
+    public Optional<UUID> getUserUuidByUsername(String username) {
+        return userDAO.getUserUuidByUsername(username);
+    }
+
+    /**
      * 刷新用户最后在线时间
      * 通常由存储过程自动调用，此方法仅用于特殊情况
      * @param userId 用户ID

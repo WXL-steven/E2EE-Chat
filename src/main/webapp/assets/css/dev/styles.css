@@ -254,4 +254,31 @@
   .input-checkbox {
     @apply flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none;
   }
+
+  /* 主容器布局 */
+  .main-container {
+    @apply m-16 min-h-[calc(100vh-8rem)] max-w-3xl rounded-lg relative;
+  }
+
+  /* 顶栏布局 */
+  .top-bar {
+    @apply absolute top-0 left-0 right-0 h-16 bg-white shadow-md rounded-t-lg 
+           flex items-center justify-between px-6;
+  }
+
+  /* 内容列布局 */
+  .content-column {
+    @apply absolute top-16 bottom-16 left-0 right-0 overflow-y-auto px-6 py-4;
+  }
+
+  /* 浮动通知区域 */
+  .notification-area {
+    @apply absolute bottom-16 left-0 right-0 px-6;
+  }
+
+  /* 底栏布局 */
+  .bottom-bar {
+    @apply absolute bottom-0 left-0 right-0 h-16 bg-white shadow-md rounded-b-lg
+           flex items-center justify-between px-6 gap-4;
+  }
 }

@@ -69,4 +69,22 @@ public class SessionService {
     public Optional<UUID> getOrCreateSession(UUID userId, UUID otherUserId) {
         return sessionDAO.getOrCreateSession(userId, otherUserId);
     }
+
+    /**
+     * 获取指定会话
+     *
+     * @param userId 用户ID
+     * @param sessionId 会话ID
+     * @return 如果会话存在且用户有权限访问则返回会话对象，否则返回空
+     */
+    public Optional<ChatSession> getSession(UUID userId, UUID sessionId) {
+        if (userId == null || sessionId == null) {
+            return Optional.empty();
+        }
+        try {
+            return sessionDAO.getSession(userId, sessionId);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
 }

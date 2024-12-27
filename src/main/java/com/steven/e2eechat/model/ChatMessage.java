@@ -1,5 +1,6 @@
 package com.steven.e2eechat.model;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
@@ -15,6 +16,7 @@ import java.util.UUID;
  * @property isRead 消息是否已读
  * @property messageIv 消息加密IV向量
  * @property messageContent 加密后的消息内容
+ * @property sentAt 消息发送时间
  */
 public class ChatMessage {
     private UUID messageId;
@@ -26,6 +28,7 @@ public class ChatMessage {
     private boolean isRead;
     private byte[] messageIv;
     private byte[] messageContent;
+    private OffsetDateTime sentAt;
 
     // Getters and Setters
     public UUID getMessageId() {
@@ -98,5 +101,13 @@ public class ChatMessage {
 
     public void setMessageContent(byte[] messageContent) {
         this.messageContent = messageContent;
+    }
+
+    public OffsetDateTime getSentAt() {
+        return sentAt;
+    }
+
+    public void setSentAt(OffsetDateTime sentAt) {
+        this.sentAt = sentAt;
     }
 }

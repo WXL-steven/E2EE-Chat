@@ -41,8 +41,8 @@ public class SessionDAO {
                 session.setParticipantId((UUID) rs.getObject("participant_id"));
                 session.setCreatedAt(rs.getObject("created_at", OffsetDateTime.class));
                 session.setMessageCounter(rs.getLong("message_counter"));
-                session.setLastMessageId((UUID) rs.getObject("last_message_id"));
-                session.setLastMessageAt(rs.getObject("last_message_at", OffsetDateTime.class));
+                session.setLastMessageId(rs.getObject("last_message_id") != null ? (UUID) rs.getObject("last_message_id") : null);
+                session.setLastMessageAt(rs.getObject("last_message_at") != null ? rs.getObject("last_message_at", OffsetDateTime.class) : null);
                 sessions.add(session);
             }
             
@@ -181,6 +181,41 @@ public class SessionDAO {
     }
 
     /**
+     * 获取指定会话
+     * 仅当用户是会话的发起者或参与者时才能获取
+     *
+     * @param userId 用户ID
+     * @param sessionId 会话ID
+     * @return 如果会话存在且用户有权限访问则返回会话对象，否则返回空
+     */
+    public Optional<ChatSession> getSession(UUID userId, UUID sessionId) {
+        String sql = "SELECT * FROM get_session(?, ?)";
+        
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setObject(1, userId);
+            stmt.setObject(2, sessionId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                ChatSession session = new ChatSession();
+                session.setSessionId((UUID) rs.getObject("session_id"));
+                session.setInitiatorId((UUID) rs.getObject("initiator_id"));
+                session.setParticipantId((UUID) rs.getObject("participant_id"));
+                session.setCreatedAt(rs.getObject("created_at", OffsetDateTime.class));
+                session.setMessageCounter(rs.getLong("message_counter"));
+                session.setLastMessageId(rs.getObject("last_message_id") != null ? (UUID) rs.getObject("last_message_id") : null);
+                session.setLastMessageAt(rs.getObject("last_message_at") != null ? rs.getObject("last_message_at", OffsetDateTime.class) : null);
+                return Optional.of(session);
+            }
+            return Optional.empty();
+        } catch (SQLException e) {
+            throw new RuntimeException("获取会话失败", e);
+        }
+    }
+
+    /**
      * 获取指定消息
      * 仅当用户是消息的发送者或接收者时才能获取
      *
@@ -209,6 +244,7 @@ public class SessionDAO {
                 message.setRead(rs.getBoolean("is_read"));
                 message.setMessageIv(rs.getBytes("message_iv"));
                 message.setMessageContent(rs.getBytes("message_content"));
+                message.setSentAt(rs.getObject("sent_at", OffsetDateTime.class));
                 return Optional.of(message);
             }
             return Optional.empty();
@@ -242,6 +278,7 @@ public class SessionDAO {
                 message.setRead(rs.getBoolean("is_read"));
                 message.setMessageIv(rs.getBytes("message_iv"));
                 message.setMessageContent(rs.getBytes("message_content"));
+                message.setSentAt(rs.getObject("sent_at", OffsetDateTime.class));
                 messages.add(message);
             }
             

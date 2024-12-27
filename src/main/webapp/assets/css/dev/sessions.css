@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .card {
+    @apply box-border flex min-h-[95vh] w-[30rem] max-w-[95vw] flex-col rounded-xl bg-white shadow-md overflow-hidden;
+  }
+  .card-title {
+    @apply flex h-[4rem] w-full flex-row items-center justify-between border-b border-gray-200 px-4;
+  }
+  .card-bottom {
+    @apply relative flex h-[3.5rem] w-full flex-row items-center justify-between border-t border-gray-200 px-4;
+  }
+  .card-body {
+    @apply flex-grow overflow-y-auto p-2;
+  }
+  .session-item {
+    @apply flex cursor-pointer flex-row items-center justify-between rounded-lg bg-transparent px-3 py-2 transition-colors duration-200 ease-in-out hover:bg-gray-100;
+  }
+  .avatar {
+    @apply mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-300 text-lg font-medium text-white;
+  }
+  .info {
+    @apply mr-auto;
+  }
+  .username {
+    @apply text-base font-semibold text-gray-800;
+  }
+  .lastinfo {
+    @apply text-sm text-gray-500;
+  }
+  .lastsent {
+    @apply ml-2 text-sm text-gray-500;
+  }
+  .new-count {
+    @apply ml-2 min-w-[1.5rem] flex h-[1.5rem] items-center justify-center rounded-full bg-red-600 text-xs text-white font-medium;
+  }
+  .user-info {
+    @apply ml-0 flex flex-row items-center;
+  }
+  .logout {
+    @apply mr-0 flex flex-row;
+  }
+  .user-avatar {
+    @apply mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-sm font-medium text-white;
+  }
+  .user-name {
+    @apply text-lg font-bold text-gray-900; /* 更大更粗的字体 */
+  }
+  .input-form {
+    @apply flex w-full flex-row items-center;
+  }
+  .input-username {
+    @apply ml-0 flex-1;
+  }
+  .input-username-input {
+    @apply w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500;
+  }
+  .open-dialog {
+    @apply ml-2 flex-none;
+  }
+  .open-dialog-button {
+    @apply px-4 py-2 bg-transparent border border-blue-500 rounded-md text-blue-500 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors duration-200;
+  }
+  .logout-button {
+    @apply px-3 py-1 text-sm bg-red-100 text-red-600 rounded hover:bg-red-200 focus:outline-none transition-colors duration-200; /* 偏红的背景色 */
+  }
+
+  /* 错误消息 Snackbar */
+  .input-error-snackbar {
+    @apply absolute top-[-3.5rem] left-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-md shadow-md transition-opacity duration-300 ease-out; /* 添加过渡效果 */
+  }
+  .input-error-snackbar.hidden {
+    @apply opacity-0 pointer-events-none; /* 隐藏 Snackbar */
+  }
+  /* 没有会话时的提示信息 */
+  .no-sessions {
+    @apply text-center text-gray-500 text-sm py-4; /* 居中，灰色文本，小号字体，一些垂直内边距 */
+  }
+}
+
+body {
+  @apply m-0 flex h-screen w-screen flex-col items-center justify-center bg-gray-100;
+}

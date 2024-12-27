@@ -6,55 +6,37 @@ import java.util.UUID;
 /**
  * 用户资料模型
  * 对应数据库中的user_profiles表
+ * 
+ * 实例特性：
+ * - userId: 用户唯一标识，UUID格式，由系统自动生成
+ * - username: 用户名
+ *   - 长度：1-16个字符
+ *   - 字符集：仅ASCII字符（字母、数字、下划线、连字符）
+ *   - 格式：^[a-zA-Z0-9_-]{1,16}$
+ *   - 唯一性：在系统中必须唯一
+ * - displayName: 显示名称
+ *   - 长度：1-32个字符
+ *   - 字符集：UTF-8编码的Unicode字符
+ *   - 用于界面显示，支持各种语言
+ * - publicKey: 用户公钥
+ *   - 用于端到端加密
+ *   - 可为空（注册时为空，创建保险库时设置）
+ *   - 使用Base64编码存储
+ * - lastOnline: 最后在线时间
+ *   - 使用带时区的时间戳
+ *   - 由系统自动更新
+ *   - 用于显示用户状态
+ * - registeredAt: 注册时间
+ *   - 使用带时区的时间戳
+ *   - 由系统在用户注册时自动设置
+ *   - 不可修改
  */
 public class UserProfile {
-    /**
-     * 用户唯一标识
-     * UUID格式，由系统自动生成
-     */
     private UUID userId;
-
-    /**
-     * 用户名
-     * 限制：
-     * - 长度：1-16个字符
-     * - 字符集：仅ASCII字符（字母、数字、下划线、连字符）
-     * - 格式：^[a-zA-Z0-9_-]{1,16}$
-     * - 唯一性：在系统中必须唯一
-     */
     private String username;
-
-    /**
-     * 显示名称
-     * 限制：
-     * - 长度：1-32个字符
-     * - 字符集：UTF-8编码的Unicode字符
-     * - 用于界面显示，支持各种语言
-     */
     private String displayName;
-
-    /**
-     * 用户公钥
-     * - 用于端到端加密
-     * - 可为空（注册时为空，创建保险库时设置）
-     * - 使用Base64编码存储
-     */
     private byte[] publicKey;
-
-    /**
-     * 最后在线时间
-     * - 使用带时区的时间戳
-     * - 由系统自动更新
-     * - 用于显示用户状态
-     */
     private OffsetDateTime lastOnline;
-
-    /**
-     * 注册时间
-     * - 使用带时区的时间戳
-     * - 由系统在用户注册时自动设置
-     * - 不可修改
-     */
     private OffsetDateTime registeredAt;
 
     // Getters and Setters

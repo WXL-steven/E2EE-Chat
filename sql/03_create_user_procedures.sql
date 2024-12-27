@@ -243,6 +243,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 通过用户名获取用户UUID函数
+CREATE OR REPLACE FUNCTION get_user_uuid_by_username(
+    p_username VARCHAR(16)
+) RETURNS UUID
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_user_id UUID;
+BEGIN
+    SELECT user_id INTO v_user_id
+    FROM user_profiles
+    WHERE username = p_username;
+    
+    RETURN v_user_id;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 添加函数注释
 COMMENT ON FUNCTION check_username_available IS '检查用户名是否可用，验证格式并确保唯一性';
 COMMENT ON FUNCTION register_user IS '注册新用户，创建用户资料、凭证和保险库';
@@ -252,3 +269,4 @@ COMMENT ON FUNCTION create_vault IS '完成用户保险库配置';
 COMMENT ON FUNCTION get_vault IS '获取用户保险库完整信息';
 COMMENT ON FUNCTION get_user_profile IS '获取用户完整资料信息';
 COMMENT ON FUNCTION update_last_online IS '更新用户最后在线时间，可选指定时间戳';
+COMMENT ON FUNCTION get_user_uuid_by_username IS '通过用户名获取用户UUID';

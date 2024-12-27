@@ -1,81 +1,120 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page import="com.steven.e2eechat.model.UserProfile" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!DOCTYPE html>
-<html lang="zh" class="h-full">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>聊天联系人</title>
-    <link href="/assets/css/dist/styles.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>会话 - E2EE Chat</title>
+  <link href="${pageContext.request.contextPath}/assets/css/dist/sessions.css" rel="stylesheet">
 </head>
-<body class="h-full bg-gray-100">
-    <div class="flex flex-col h-full">
-        <!-- 置顶栏 -->
-        <header class="bg-white shadow-md p-4 flex items-center justify-between">
-            <div class="flex items-center">
-                <h1 class="text-xl font-bold text-gray-800">联系人</h1>
-            </div>
-            <div class="flex items-center space-x-4">
-                <button class="text-gray-600 hover:text-gray-800">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                </button>
-                <button class="text-gray-600 hover:text-gray-800">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </button>
-            </div>
-        </header>
-
-        <!-- 联系人列表 -->
-        <main class="flex-grow overflow-y-auto p-4 space-y-4">
-            <% 
-                // 模拟联系人数据
-                String[][] contacts = {
-                    {"Alice", "最近怎么样？", "2小时前", "https://randomuser.me/api/portraits/women/1.jpg"},
-                    {"Bob", "项目进展如何", "昨天", "https://randomuser.me/api/portraits/men/1.jpg"},
-                    {"Charlie", "周末一起吃饭吗", "3天前", "https://randomuser.me/api/portraits/men/2.jpg"},
-                    {"David", "新年快乐！", "1周前", "https://randomuser.me/api/portraits/men/3.jpg"},
-                    {"Eve", "工作顺利吗", "2周前", "https://randomuser.me/api/portraits/women/2.jpg"}
-                };
-            %>
-
-            <% for(String[] contact : contacts) { %>
-                <div class="bg-white rounded-lg shadow-md p-4 flex items-center hover:bg-gray-50 transition duration-200 cursor-pointer">
-                    <img src="<%= contact[3] %>" alt="<%= contact[0] %>" class="w-12 h-12 rounded-full mr-4 object-cover">
-                    <div class="flex-grow">
-                        <div class="flex justify-between items-center">
-                            <h2 class="text-lg font-semibold text-gray-800"><%= contact[0] %></h2>
-                            <span class="text-sm text-gray-500"><%= contact[2] %></span>
-                        </div>
-                        <p class="text-gray-600 text-sm truncate"><%= contact[1] %></p>
-                    </div>
-                </div>
-            <% } %>
-        </main>
-
-        <!-- 置底栏 -->
-        <footer class="bg-white shadow-md p-4 flex justify-around items-center">
-            <button class="text-gray-600 hover:text-blue-600 flex flex-col items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                <span class="text-xs mt-1">首页</span>
-            </button>
-            <button class="text-blue-600 flex flex-col items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <span class="text-xs mt-1">联系人</span>
-            </button>
-            <button class="text-gray-600 hover:text-blue-600 flex flex-col items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-                <span class="text-xs mt-1">消息</span>
-            </button>
-        </footer>
+<body class="bg-gray-100">
+  <%
+  UserProfile user = (UserProfile) session.getAttribute("user");
+  String messageContent = (String) session.getAttribute("messageContent");
+  String messageLevel = (String) session.getAttribute("messageLevel");
+  
+  String displayName = user.getDisplayName().trim();
+  String avatarText;
+  if (!displayName.isEmpty()) {
+    String firstChar = displayName.substring(0, 1);
+    if (firstChar.matches("[a-z]")) {
+      avatarText = firstChar.toUpperCase();
+    } else {
+      avatarText = firstChar;
+    }
+  } else {
+    avatarText = "X";
+  }
+  pageContext.setAttribute("avatarText", avatarText);
+  
+  // 清除消息，避免刷新时重复显示
+  session.removeAttribute("messageContent");
+  session.removeAttribute("messageLevel");
+  %>
+  <div class="card">
+    <div class="card-title">
+      <div class="user-info">
+        <div class="user-avatar">
+          <c:out value="${avatarText}" />
+        </div>
+        <div class="user-name">
+          <c:out value="${user.displayName}" />
+        </div>
+      </div>
+      <div class="logout">
+        <button class="logout-button" onclick="handleLogout()">登出</button>
+      </div>
     </div>
+    <div class="card-body" id="sessions-container">
+      <!-- 会话列表将通过AJAX动态加载 -->
+    </div>
+    <div class="card-bottom">
+      <div class="input-error-snackbar hidden" id="error-snackbar"></div>
+      <form action="${pageContext.request.contextPath}/sessions/new" method="POST" onsubmit="return validateForm()" class="input-form">
+          <div class="input-username">
+            <input type="text" name="username" class="input-username-input" id="username-input" placeholder="输入用户名"
+              pattern="^[a-zA-Z0-9_-@]{1,16}$" required>
+          </div>
+          <div class="open-dialog">
+            <button type="submit" class="open-dialog-button">打开会话</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 如果有错误消息，显示Snackbar
+    <% if (messageContent != null && messageLevel != null && messageLevel.equals("error")) { %>
+      showError('<%= messageContent %>');
+    <% } %>
+
+    function showError(message) {
+      const errorSnackbar = document.getElementById('error-snackbar');
+      errorSnackbar.textContent = message;
+      errorSnackbar.classList.remove('hidden');
+      setTimeout(() => {
+        errorSnackbar.classList.add('hidden');
+      }, 5000);
+    }
+
+    function handleLogout() {
+      sessionStorage.clear();
+      window.location.href = '${pageContext.request.contextPath}/account/logout';
+    }
+
+    function validateForm() {
+      const username = document.getElementById('username-input').value.trim();
+      if (!username) {
+        showError('请输入用户名');
+        return false;
+      }
+      return true;
+    }
+
+    // 定期更新会话列表
+    function updateSessionsList() {
+      fetch('${pageContext.request.contextPath}/sessions/list')
+        .then(response => {
+          if (response.redirected) {
+            window.location.href = response.url;
+            return;
+          }
+          return response.text();
+        })
+        .then(html => {
+          if (html) {
+            document.getElementById('sessions-container').innerHTML = html;
+          }
+        })
+        .catch(error => console.error('更新会话列表失败:', error));
+    }
+
+    // 初始加载和定期更新
+    updateSessionsList();
+    setInterval(updateSessionsList, 3000);
+  </script>
 </body>
 </html>

@@ -250,4 +250,29 @@ public class UserDAO {
             throw new RuntimeException("更新用户最后在线时间失败", e);
         }
     }
+
+    /**
+     * 通过用户名获取用户UUID
+     *
+     * @param username 用户名
+     * @return 用户UUID，如果用户不存在返回空
+     */
+    public Optional<UUID> getUserUuidByUsername(String username) {
+        String sql = "SELECT get_user_uuid_by_username(?)";
+        
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, username);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                UUID userId = (UUID) rs.getObject(1);
+                return Optional.ofNullable(userId);
+            }
+            return Optional.empty();
+        } catch (SQLException e) {
+            throw new RuntimeException("获取用户UUID失败", e);
+        }
+    }
 }

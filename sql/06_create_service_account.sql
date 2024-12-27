@@ -21,6 +21,7 @@ GRANT EXECUTE ON FUNCTION create_vault(UUID, BYTEA, BYTEA, BYTEA, BYTEA) TO e2ee
 GRANT EXECUTE ON FUNCTION get_vault(UUID) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION get_user_profile(UUID) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION update_last_online(UUID, TIMESTAMPTZ) TO e2ee_chat_service;
+GRANT EXECUTE ON FUNCTION get_user_uuid_by_username(VARCHAR) TO e2ee_chat_service;
 
 GRANT EXECUTE ON FUNCTION get_recent_sessions(UUID) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION get_unread_count(UUID, UUID) TO e2ee_chat_service;
@@ -29,6 +30,7 @@ GRANT EXECUTE ON FUNCTION get_messages_before(UUID, UUID, BIGINT, INTEGER) TO e2
 GRANT EXECUTE ON FUNCTION get_messages_after(UUID, UUID, BIGINT, INTEGER) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION send_message(UUID, UUID, BYTEA, BYTEA, BOOLEAN) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION get_or_create_session(UUID, UUID) TO e2ee_chat_service;
+GRANT EXECUTE ON FUNCTION get_session(UUID, UUID) TO e2ee_chat_service;
 GRANT EXECUTE ON FUNCTION get_message(UUID, UUID) TO e2ee_chat_service;
 
 -- 添加注释

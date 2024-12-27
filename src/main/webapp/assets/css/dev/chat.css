@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .chat-dialog {
+    @apply box-border flex min-h-[95vh] w-[30rem] max-w-[95vw] flex-col overflow-hidden rounded-xl bg-white shadow-md;
+  }
+  .chat-header {
+    @apply relative flex h-[5rem] w-full flex-col justify-center border-b border-gray-200 px-4; /* 修改高度和布局，添加 relative */
+  }
+  .back-button {
+    @apply absolute left-4 top-1/2 -translate-y-1/2 cursor-pointer text-blue-500; /* 返回按钮，使用 absolute 定位 */
+  }
+  .header-info {
+    @apply flex flex-col items-start justify-center pl-16; /* 调整信息位置，留出返回按钮的空间 */
+  }
+  .display-name {
+    @apply text-lg font-bold text-gray-900; /* 更大更粗的字体 */
+  }
+  .username {
+    @apply text-sm text-gray-600;
+  }
+  .chat-body {
+    @apply flex flex-grow flex-col-reverse overflow-y-auto p-4; /* 底部向上，使用反向 flex */
+  }
+  .chat-footer {
+    @apply relative flex w-full flex-col border-t border-gray-200 p-4; /* 修改为 flex-col */
+  }
+  .chat-input-container {
+    @apply flex flex-row items-center;
+  }
+  .chat-input {
+    @apply flex-grow resize-none overflow-y-auto rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500;
+  }
+  .send-button {
+    @apply ml-2 rounded-md bg-blue-500 px-4 py-2 text-white transition-colors duration-200 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1;
+  }
+
+  /* 消息泡 */
+  .message-bubble {
+    @apply relative mb-2 max-w-[70%] rounded-2xl p-3 pb-6;
+  }
+
+  /* 接收的消息 */
+  .message-received {
+    @apply message-bubble bg-gray-100 text-gray-800;
+  }
+
+  /* 发送的消息 */
+  .message-sent {
+    @apply message-bubble ml-auto bg-blue-600 text-white;
+  }
+
+  /* 日期泡 */
+  .message-date {
+    @apply mx-auto mb-4 w-fit rounded-full bg-gray-100/75 px-4
+           py-1 text-sm text-gray-600;
+  }
+
+  /* 消息时间 */
+  .message-time {
+    @apply absolute bottom-2 left-auto right-3 text-xs opacity-75;
+  }
+
+  .message-sent .message-time {
+    @apply text-white/75;
+  }
+
+  /* 分割线 */
+  .divider {
+    @apply my-4 h-px w-full bg-gray-200;
+  }
+
+  .divider-text {
+    @apply relative my-4 h-px w-full bg-gray-200;
+  }
+
+  .divider-text::before {
+    @apply absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2
+           bg-white px-4 text-sm text-gray-500;
+    content: attr(data-text);
+  }
+
+  /* 消息格式化 */
+  .message-monospace {
+    @apply font-mono;
+  }
+
+  .message-bold {
+    @apply font-bold;
+  }
+
+  .message-italic {
+    @apply italic;
+  }
+
+  .message-underline {
+    @apply underline;
+  }
+
+  .message-strikethrough {
+    @apply line-through;
+  }
+
+  /* 错误消息 Snackbar */
+  .input-error-snackbar {
+    @apply absolute left-4 right-4 top-[-3.5rem] rounded-md border border-red-400 bg-red-100 px-4 py-2 text-red-700 shadow-md transition-opacity duration-300 ease-out; /* 添加过渡效果 */
+  }
+  .input-error-snackbar.hidden {
+    @apply pointer-events-none opacity-0; /* 隐藏 Snackbar */
+  }
+}
+
+body {
+  @apply m-0 flex h-screen w-screen flex-col items-center justify-center bg-gray-100;
+}
