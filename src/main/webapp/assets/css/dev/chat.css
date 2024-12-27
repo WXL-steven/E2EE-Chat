@@ -39,17 +39,17 @@
 
   /* 消息泡 */
   .message-bubble {
-    @apply relative mb-2 max-w-[70%] rounded-2xl p-3 pb-6;
+    @apply relative mb-2 max-w-[70%] min-w-[15%] rounded-2xl p-3 pb-6;
   }
 
   /* 接收的消息 */
   .message-received {
-    @apply message-bubble bg-gray-100 text-gray-800;
+    @apply message-bubble bg-gray-100 text-gray-800 text-left;
   }
 
   /* 发送的消息 */
   .message-sent {
-    @apply message-bubble ml-auto bg-blue-600 text-white;
+    @apply message-bubble ml-auto bg-blue-600 text-white text-right;
   }
 
   /* 日期泡 */

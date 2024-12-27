@@ -49,7 +49,7 @@
     </div>
     <div class="chat-body">
         <section class="mb-8 w-full" id="message-container">
-            <div class="divider-text" data-text="未读消息"></div>
+            <!-- <div class="divider-text" data-text="未读消息"></div>
             <div class="message-date">2024-12-25</div>
             <div class="mb-4 flex items-start gap-2">
                 <div>
@@ -70,7 +70,7 @@
                         <div class="message-time">12:35</div>
                     </div>
                 </div>
-            </div>
+            </div> -->
         </section>
     </div>
     <div class="chat-footer">
@@ -338,15 +338,81 @@
         }
     }
 
-    // 格式化消息文本
-    function formatMessage(text) {
-        return text
-            .replace(/\*\*(.*?)\*\*/g, '<span class="message-bold">$1</span>')
-            .replace(/\*(.*?)\*/g, '<span class="message-italic">$1</span>')
-            .replace(/__(.*?)__/g, '<span class="message-underline">$1</span>')
-            .replace(/~~(.*?)~~/g, '<span class="message-strikethrough">$1</span>')
-            .replace(/`(.*?)`/g, '<span class="message-monospace">$1</span>')
-            .replace(/\n/g, '<br>');
+    // 安全地格式化消息文本
+    function formatMessageSecure(text) {
+        const elements = [];
+        let currentText = '';
+        let currentIndex = 0;
+
+        function pushText() {
+            if (currentText) {
+                elements.push({ type: 'text', content: currentText });
+                currentText = '';
+            }
+        }
+
+        while (currentIndex < text.length) {
+            if (text.startsWith('**', currentIndex)) {
+                pushText();
+                const endIndex = text.indexOf('**', currentIndex + 2);
+                if (endIndex !== -1) {
+                    elements.push({ type: 'bold', content: text.substring(currentIndex + 2, endIndex) });
+                    currentIndex = endIndex + 2;
+                } else {
+                    currentText += text[currentIndex];
+                    currentIndex++;
+                }
+            } else if (text.startsWith('*', currentIndex)) {
+                pushText();
+                const endIndex = text.indexOf('*', currentIndex + 1);
+                if (endIndex !== -1) {
+                    elements.push({ type: 'italic', content: text.substring(currentIndex + 1, endIndex) });
+                    currentIndex = endIndex + 1;
+                } else {
+                    currentText += text[currentIndex];
+                    currentIndex++;
+                }
+            } else if (text.startsWith('__', currentIndex)) {
+                pushText();
+                const endIndex = text.indexOf('__', currentIndex + 2);
+                if (endIndex !== -1) {
+                    elements.push({ type: 'underline', content: text.substring(currentIndex + 2, endIndex) });
+                    currentIndex = endIndex + 2;
+                } else {
+                    currentText += text[currentIndex];
+                    currentIndex++;
+                }
+            } else if (text.startsWith('~~', currentIndex)) {
+                pushText();
+                const endIndex = text.indexOf('~~', currentIndex + 2);
+                if (endIndex !== -1) {
+                    elements.push({ type: 'strikethrough', content: text.substring(currentIndex + 2, endIndex) });
+                    currentIndex = endIndex + 2;
+                } else {
+                    currentText += text[currentIndex];
+                    currentIndex++;
+                }
+            } else if (text.startsWith('`', currentIndex)) {
+                pushText();
+                const endIndex = text.indexOf('`', currentIndex + 1);
+                if (endIndex !== -1) {
+                    elements.push({ type: 'monospace', content: text.substring(currentIndex + 1, endIndex) });
+                    currentIndex = endIndex + 1;
+                } else {
+                    currentText += text[currentIndex];
+                    currentIndex++;
+                }
+            } else if (text[currentIndex] === '\n') {
+                pushText();
+                elements.push({ type: 'newline' });
+                currentIndex++;
+            } else {
+                currentText += text[currentIndex];
+                currentIndex++;
+            }
+        }
+        pushText();
+        return elements;
     }
 
     // 显示消息
@@ -354,6 +420,7 @@
         const messageContainer = document.getElementById('message-container');
         let currentDate = null;
 
+        // 按发送时间排序消息
         for (const message of newMessages) {
             try {
                 // 检查消息是否已存在
@@ -373,45 +440,112 @@
                     decryptedContent: content
                 });
 
-                // 检查日期是否变化
+                const messageTime = new Date(message.sentAt).getTime();
                 const messageDate = new Date(message.sentAt).toLocaleDateString();
+                
+                // 找到正确的插入位置
+                let insertPosition = null;
+                const messageElements = messageContainer.children;
+                
+                for (let i = messageElements.length - 1; i >= 0; i--) {
+                    const element = messageElements[i];
+                    if (element.classList.contains('message-date')) {
+                        const dateAttr = element.getAttribute('data-date');
+                        if (dateAttr === messageDate) {
+                            insertPosition = element.nextSibling;
+                            currentDate = messageDate;
+                            break;
+                        } else if (new Date(dateAttr).getTime() < new Date(messageDate).getTime()) {
+                            // 需要插入新的日期分隔符
+                            insertPosition = element.nextSibling;
+                            break;
+                        }
+                    } else if (element.classList.contains('mb-4')) {
+                        const msgId = element.getAttribute('data-message-id');
+                        const existingMsg = messages.get(msgId);
+                        if (existingMsg && new Date(existingMsg.sentAt).getTime() < messageTime) {
+                            insertPosition = element.nextSibling;
+                            break;
+                        }
+                    }
+                }
+
+                // 如果需要插入新的日期分隔符
                 if (messageDate !== currentDate) {
                     currentDate = messageDate;
-
-                    // 检查是否已存在该日期的分隔符
-                    const existingDate = messageContainer.querySelector('[data-date="' + messageDate + '"]');
-                    if (!existingDate) {
+                    if (!messageContainer.querySelector('[data-date="' + messageDate + '"]')) {
                         const dateDiv = document.createElement('div');
                         dateDiv.className = 'message-date';
                         dateDiv.setAttribute('data-date', messageDate);
                         dateDiv.textContent = messageDate;
-                        messageContainer.appendChild(dateDiv);
+                        messageContainer.insertBefore(dateDiv, insertPosition);
                     }
                 }
 
                 // 创建消息元素
-                const messageTime = new Date(message.sentAt).toLocaleTimeString();
+                const messageTimeStr = new Date(message.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 const isCurrentUser = message.senderId === CURRENT_USER_ID;
 
                 const messageWrapper = document.createElement('div');
                 messageWrapper.className = 'mb-4 flex ' + (isCurrentUser ? 'flex-row-reverse' : '') + ' items-start gap-2';
-
-                const messageDiv = document.createElement('div');
-                const messageBubble = document.createElement('div');
-                messageBubble.className = isCurrentUser ? 'message-sent' : 'message-received';
-                const messageSpan = document.createElement('span');
-                messageSpan.innerHTML = formatMessage(content);
+                messageWrapper.setAttribute('data-message-id', message.messageId);
 
                 const timeDiv = document.createElement('div');
                 timeDiv.className = 'message-time';
-                timeDiv.textContent = messageTime;
+                timeDiv.textContent = messageTimeStr;
 
-                messageBubble.appendChild(messageSpan);
+                const messageBubble = document.createElement('div');
+                messageBubble.className = isCurrentUser ? 'message-sent' : 'message-received';
+
+                // 使用安全的格式化函数
+                const formattedElements = formatMessageSecure(content);
+                formattedElements.forEach(element => {
+                    let span;
+                    switch (element.type) {
+                        case 'bold':
+                            span = document.createElement('span');
+                            span.className = 'message-bold';
+                            span.textContent = element.content;
+                            messageBubble.appendChild(span);
+                            break;
+                        case 'italic':
+                            span = document.createElement('span');
+                            span.className = 'message-italic';
+                            span.textContent = element.content;
+                            messageBubble.appendChild(span);
+                            break;
+                        case 'underline':
+                            span = document.createElement('span');
+                            span.className = 'message-underline';
+                            span.textContent = element.content;
+                            messageBubble.appendChild(span);
+                            break;
+                        case 'strikethrough':
+                            span = document.createElement('span');
+                            span.className = 'message-strikethrough';
+                            span.textContent = element.content;
+                            messageBubble.appendChild(span);
+                            break;
+                        case 'monospace':
+                            span = document.createElement('span');
+                            span.className = 'message-monospace';
+                            span.textContent = element.content;
+                            messageBubble.appendChild(span);
+                            break;
+                        case 'newline':
+                            messageBubble.appendChild(document.createElement('br'));
+                            break;
+                        case 'text':
+                            messageBubble.appendChild(document.createTextNode(element.content));
+                            break;
+                    }
+                });
+
                 messageBubble.appendChild(timeDiv);
-                messageDiv.appendChild(messageBubble);
-                messageWrapper.appendChild(messageDiv);
+                messageWrapper.appendChild(messageBubble);
 
-                messageContainer.appendChild(messageWrapper);
+                // 在正确的位置插入消息
+                messageContainer.insertBefore(messageWrapper, insertPosition);
             } catch (error) {
                 console.error('解密消息失败：', error);
             }
