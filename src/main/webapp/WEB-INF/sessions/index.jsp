@@ -24,7 +24,7 @@
     } else {
       avatarText = firstChar;
     }
-  } else {
+  } else {  
     avatarText = "X";
   }
   pageContext.setAttribute("avatarText", avatarText);
