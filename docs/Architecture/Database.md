@@ -1,377 +1,661 @@
-# 数据库架构设计
+# 数据库文档
 
-## 1. 技术栈
-- PostgreSQL 17.2
+## 目录
 
-## 2. 数据库表设计
+**数据库结构**
+  *   [数据库概览](#1-数据库概览)：数据库的用途和设计理念。
+  *   [用户资料表 (user_profiles)](#22-user_profiles)：存储用户的基本信息，如用户名、显示名和公钥。
+  *   [用户凭证表 (user_credentials)](#23-user_credentials)：存储用户的登录凭证，如密码哈希和盐值。
+  *   [用户保险库表 (user_vaults)](#24-user_vaults)：存储用户的加密密钥信息。
 
-> 表格中使用的缩写说明：
-> - 键类型：PK=主键, FK=外键
-> - 约束：UQ=唯一约束
-> - 索引类型：IX=普通索引, CX=聚集索引（主键默认）
+**用户管理存储过程**
+  *   [检查用户名是否可用 (check_username_available)](#32-check_username_available)：验证用户名格式和唯一性。
+  *   [注册新用户 (register_user)](#33-register_user)：创建用户账户并初始化相关数据。
+  *   [获取用户密码盐值 (get_user_salt)](#34-get_user_salt)：用于密码验证。
+  *   [验证用户登录 (verify_login)](#35-verify_login)：核对用户提供的密码。
+  *   [创建用户保险库 (create_vault)](#36-create_vault)：配置用户的加密密钥。
+  *   [获取用户保险库信息 (get_vault)](#37-get_vault)：获取用户的加密密钥信息。
+  *   [获取用户资料信息 (get_user_profile)](#38-get_user_profile)：获取用户的基本信息。
+  *   [更新用户最后在线时间 (update_last_online)](#39-update_last_online)：记录用户的活动状态。
+  *   [通过用户名获取用户UUID (get_user_uuid_by_username)](#310-get_user_uuid_by_username)：根据用户名查找用户 ID。
 
-### 2.1 用户相关表
+**会话管理存储过程**
+  *   [获取最近会话列表 (get_recent_sessions)](#311-get_recent_sessions)：查看用户的聊天列表。
+  *   [获取未读消息数 (get_unread_count)](#312-get_unread_count)：统计会话中的未读消息。
+  *   [获取首条未读消息 (get_first_unread)](#313-get_first_unread)：定位会话中的未读消息。
+  *   [获取之前的消息 (get_messages_before)](#314-get_messages_before)：加载历史消息。
+  *   [获取之后的消息 (get_messages_after)](#315-get_messages_after)：加载新消息。
+  *   [发送消息 (send_message)](#316-send_message)：向会话发送消息。
+  *   [获取或创建会话 (get_or_create_session)](#317-get_or_create_session)：开始新的聊天或继续现有聊天。
+  *   [获取指定会话 (get_session)](#318-get_session)：查看会话详情。
+  *   [获取指定消息 (get_message)](#319-get_message)：查看单条消息详情。
 
-#### 2.1.1 user_profiles（用户资料表）
+**数据库用户**
+  *   [服务账号 (e2ee_chat_service)](#41-e2ee_chat_service)：应用程序访问数据库的专用账户及其权限。
 
-| 字段名 | 类型 | 可空 | 默认值 | 键/约束 | 索引 | 说明 |
-|--------|------|------|--------|----------|------|------|
-| idx | BIGSERIAL | 否 | 自增 | PK | CX | 自增主键 |
-| user_id | UUID | 否 | gen_random_uuid() | UQ | IX | 用户唯一标识 |
-| username | VARCHAR(16) | 否 | - | UQ | IX | 用户名，仅ASCII字符 |
-| display_name | VARCHAR(32) | 否 | - | - | - | UTF-8字符串 |
-| public_key | BYTEA | 是 | - | - | - | 用户公钥 |
-| last_online | TIMESTAMPTZ | 否 | CURRENT_TIMESTAMP | - | - | 最后在线时间 |
-| registered_at | TIMESTAMPTZ | 否 | CURRENT_TIMESTAMP | - | - | 注册时间 |
+## 1. 数据库概览
 
-**其他约束：**
-- username: `^[[:ascii:]]{1,16}$`
+本数据库用于支持一个端到端加密的聊天平台，名为 E2EE-Chat。它主要负责存储用户身份信息、加密密钥以及聊天会话和消息数据。
 
-#### 2.1.2 user_credentials（用户机密表）
+## 2. 数据库模式与表
 
-| 字段名 | 类型 | 可空 | 默认值 | 键/约束 | 索引 | 说明 |
-|--------|------|------|--------|----------|------|------|
-| idx | BIGSERIAL | 否 | 自增 | PK | CX | 自增主键 |
-| user_id | UUID | 否 | - | FK,UQ | IX | 关联用户标识 |
-| password_hash | BYTEA | 否 | - | - | - | 32字节固定长度 |
-| password_salt | BYTEA | 否 | - | - | - | 16字节固定长度 |
+本节详细描述了数据库中的所有模式和表结构。
 
-**其他约束：**
-- password_hash: 固定长度32字节
-- password_salt: 固定长度16字节
-- FK: user_id REFERENCES user_profiles ON DELETE CASCADE
+### 2.1 表结构通用说明
 
-#### 2.1.3 user_vaults（用户保险库表）
+* 所有表都使用 `BIGSERIAL` 类型的 `idx` 列作为自增主键。
+* 所有使用 UUID 作为外键的表，其外键列名都遵循 `*_id` 的命名约定。
+* 时间戳相关的列都使用 `TIMESTAMPTZ` 类型，存储带时区的时间信息。
 
-| 字段名 | 类型 | 可空 | 默认值 | 键/约束 | 索引 | 说明 |
-|--------|------|------|--------|----------|------|------|
-| idx | BIGSERIAL | 否 | 自增 | PK | CX | 自增主键 |
-| user_id | UUID | 否 | - | FK,UQ | IX | 关联用户标识 |
-| vault_master_key | BYTEA | 否 | - | - | - | 32字节固定长度 |
-| vault_salt | BYTEA | 是 | - | - | - | 16字节固定长度 |
-| vault_iv | BYTEA | 是 | - | - | - | 12字节固定长度 |
-| encrypted_private_key | BYTEA | 是 | - | - | - | 48-64字节长度 |
-| ready | BOOLEAN | 否 | FALSE | - | - | 保险库配置状态 |
+### 2.2 user_profiles
 
-**其他约束：**
-- vault_master_key: 固定长度32字节（创建时必需）
-- vault_salt: 固定长度16字节（配置时设置）
-- vault_iv: 固定长度12字节（配置时设置）
-- encrypted_private_key: 长度在48-64字节之间（配置时设置）
-- ready: 只有当所有加密字段都设置且用户公钥已设置后才能为true
-- FK: user_id REFERENCES user_profiles ON DELETE CASCADE
+#### 2.2.1 表结构
 
-### 2.2 会话相关表
+| 键名            | 类型          | 能否为空 | 备注     | 释义/解释/注释                                                    |
+|---------------|-------------|------|--------|-------------------------------------------------------------|
+| idx           | BIGSERIAL   | 否    | 主键     | 自增主键，无业务含义。                                                 |
+| user_id       | UUID        | 否    | 唯一     | 用户的唯一标识符，由程序生成。                                             |
+| username      | VARCHAR(16) | 否    | 唯一，校验  | 用户名，用于登录。限制为 ASCII 字符，长度 1-16。设计为 ASCII 是为了简化早期版本和避免字符编码问题。 |
+| display_name  | VARCHAR(32) | 否    |        | 用户显示的昵称，允许使用 UTF-8 字符，长度不超过 32。                             |
+| public_key    | BYTEA       | 是    |        | 用户的公钥，用于端到端加密。在用户创建保险库后设置。                                  |
+| last_online   | TIMESTAMPTZ | 否    | 默认当前时间 | 用户最后一次在线的时间。每次用户活动时更新。                                      |
+| registered_at | TIMESTAMPTZ | 否    | 默认当前时间 | 用户的注册时间。                                                    |
 
-#### 2.2.1 chat_sessions（会话表）
+#### 2.2.2 外键索引数据约束
 
-| 字段名 | 类型 | 可空 | 默认值 | 键/约束 | 索引 | 说明 |
-|--------|------|------|--------|----------|------|------|
-| idx | BIGSERIAL | 否 | 自增 | PK | CX | 自增主键 |
-| session_id | UUID | 否 | gen_random_uuid() | UQ | IX | 会话唯一标识 |
-| initiator_id | UUID | 否 | - | FK | IX | 发起者ID |
-| participant_id | UUID | 否 | - | FK | IX | 参与者ID |
-| created_at | TIMESTAMPTZ | 否 | CURRENT_TIMESTAMP | - | - | 会话创建时间 |
-| message_counter | BIGINT | 否 | 0 | - | - | 消息计数器 |
-| last_message_id | UUID | 是 | NULL | FK | - | 最后消息ID |
-| last_message_at | TIMESTAMPTZ | 是 | NULL | - | IX | 最后消息时间 |
+* **唯一约束 (Unique Constraints):**
+    * `uk_user_profiles_user_id`: 确保 `user_id` 列的唯一性。
+    * `uk_user_profiles_username`: 确保 `username` 列的唯一性。
+* **检查约束 (Check Constraints):**
+    * `ck_username_ascii`: 限制 `username` 只能包含 ASCII 字符。
+    * `ck_public_key_length`: 限制 `public_key` 的长度在 32 到 256 字节之间，允许为空。
 
-**其他约束：**
-- FK: initiator_id REFERENCES user_profiles(user_id)
-- FK: participant_id REFERENCES user_profiles(user_id)
-- FK: last_message_id REFERENCES chat_messages(message_id)
-- CHECK: initiator_id != participant_id
-- 联合索引：(initiator_id, participant_id) 用于会话查找
-- 联合索引：(initiator_id, last_message_at DESC NULLS LAST) 优化发起者的最近会话查询
-- 联合索引：(participant_id, last_message_at DESC NULLS LAST) 优化参与者的最近会话查询
+### 2.3 user_credentials
 
-#### 2.2.2 chat_messages（消息表）
+#### 2.3.1 表结构
 
-| 字段名 | 类型 | 可空 | 默认值 | 键/约束 | 索引 | 说明 |
-|--------|------|------|--------|----------|------|------|
-| idx | BIGSERIAL | 否 | 自增 | PK | CX | 自增主键 |
-| message_id | UUID | 否 | gen_random_uuid() | UQ | IX | 消息唯一标识 |
-| session_id | UUID | 否 | - | FK | IX | 所属会话ID |
-| cursor | BIGINT | 否 | - | - | IX | 消息游标 |
-| sender_id | UUID | 否 | - | FK | IX | 发送者ID |
-| receiver_id | UUID | 否 | - | FK | IX | 接收者ID |
-| message_iv | BYTEA | 否 | - | - | - | 消息初始化向量 |
-| message_content | BYTEA | 否 | - | - | - | 消息密文 |
-| is_read | BOOLEAN | 否 | FALSE | - | IX | 消息已读状态 |
-| is_system | BOOLEAN | 否 | FALSE | - | - | 是否功能性消息 |
+| 键名            | 类型        | 能否为空 | 备注    | 释义/解释/注释                          |
+|---------------|-----------|------|-------|-----------------------------------|
+| idx           | BIGSERIAL | 否    | 主键    | 自增主键，无业务含义。                       |
+| user_id       | UUID      | 否    | 唯一，外键 | 关联 `user_profiles` 表的 `user_id`。  |
+| password_hash | BYTEA     | 否    | 校验    | 存储用户密码的 Argon2id 哈希值，长度固定为 32 字节。 |
+| password_salt | BYTEA     | 否    | 校验    | 存储用于生成密码哈希的盐值，长度固定为 16 字节。        |
 
-**其他约束：**
-- FK: session_id REFERENCES chat_sessions(session_id) ON DELETE CASCADE
-- FK: sender_id REFERENCES user_profiles(user_id)
-- FK: receiver_id REFERENCES user_profiles(user_id)
-- CHECK: length(message_iv) = 12
-- CHECK: sender_id != receiver_id
-- UNIQUE(session_id, cursor) 确保游标在会话内唯一
-- 联合索引：(session_id, cursor DESC) 用于消息历史查询
-- 联合索引：(receiver_id, is_read) 用于未读消息查询
-- 联合索引：(session_id, sender_id, cursor DESC) 优化用户发送消息的查询
-- 联合索引：(receiver_id, is_read, cursor DESC) 优化未读消息查询和排序
+#### 2.3.2 外键索引数据约束
 
-### 2.3 索引策略
+* **唯一约束 (Unique Constraints):**
+    * `uk_user_credentials_user_id`: 确保每个用户只有一条凭证记录。
+* **外键约束 (Foreign Key Constraints):**
+    * `fk_user_credentials_user_id`: 关联 `user_profiles` 表的 `user_id`，并设置 `ON DELETE CASCADE`，即删除用户时级联删除其凭证信息。
+* **检查约束 (Check Constraints):**
+    * `ck_password_hash_length`: 确保 `password_hash` 的长度为 32 字节。
+    * `ck_password_salt_length`: 确保 `password_salt` 的长度为 16 字节。
 
-#### 2.3.1 会话表索引
-- session_id：用于直接访问会话
-- initiator_id, participant_id：用于用户会话列表查询
-- (initiator_id, participant_id)：用于会话查找和防重复
-- (initiator_id, last_message_at DESC NULLS LAST)：优化发起者的最近会话查询
-- (participant_id, last_message_at DESC NULLS LAST)：优化参与者的最近会话查询
+### 2.4 user_vaults
 
-#### 2.3.2 消息表索引
-- message_id：用于直接访问消息
-- session_id：用于会话消息查询
-- (session_id, cursor DESC)：用于高效分页和历史消息查询
-- (session_id, sender_id, cursor DESC)：优化用户发送消息的查询
-- (receiver_id, is_read, cursor DESC)：优化未读消息查询和排序
-- cursor：使用会话消息计数器生成，确保会话内唯一且递增
+#### 2.4.1 表结构
 
-#### 2.3.3 性能优化
-- 消息游标使用BIGINT，配合会话的message_counter实现会话内自增
-- 关键查询场景都有对应的联合索引，减少排序操作
-- 使用NULLS LAST确保新会话和空消息排序合理
-- 索引字段顺序经过优化，支持最左前缀匹配原则
-- 使用CASCADE删除确保数据一致性
-- 重要的外键都建立了索引以提升JOIN性能
+| 键名                    | 类型        | 能否为空 | 备注       | 释义/解释/注释                                                                                                 |
+|-----------------------|-----------|------|----------|----------------------------------------------------------------------------------------------------------|
+| idx                   | BIGSERIAL | 否    | 主键       | 自增主键，无业务含义。                                                                                              |
+| user_id               | UUID      | 否    | 唯一，外键    | 关联 `user_profiles` 表的 `user_id`。                                                                         |
+| vault_master_key      | BYTEA     | 否    | 校验       | 用户的主密钥，由客户端生成并存储。长度固定为 32 字节。                                                                            |
+| vault_salt            | BYTEA     | 是    | 校验       | 用于派生保险库密钥的盐值，在配置保险库时设置。长度固定为 16 字节。                                                                      |
+| vault_iv              | BYTEA     | 是    | 校验       | 用于加密用户私钥的初始化向量，在配置保险库时设置。长度固定为 12 字节。                                                                    |
+| encrypted_private_key | BYTEA     | 是    | 校验       | 使用保险库密钥加密后的用户私钥，在配置保险库时设置。长度在 32 到 256 字节之间。                                                             |
+| ready                 | BOOLEAN   | 否    | 默认 FALSE | 标识用户的保险库是否已配置完成。当 `vault_salt`, `vault_iv`, `encrypted_private_key` 均不为空时，此字段为 `TRUE`。用于快速判断用户是否已完成密钥设置。 |
 
-## 3. 索引设计策略
+#### 2.4.2 外键索引数据约束
 
-### 3.1 索引类型选择
-- 主键列使用聚集索引(CX)，提供最快的查找性能
-- 外键列使用普通索引(IX)，加速关联查询
-- 频繁查询条件（如username）使用普通索引(IX)
-- 唯一约束列自动创建唯一索引
+* **唯一约束 (Unique Constraints):**
+    * `uk_user_vaults_user_id`: 确保每个用户只有一条保险库记录。
+* **外键约束 (Foreign Key Constraints):**
+    * `fk_user_vaults_user_id`: 关联 `user_profiles` 表的 `user_id`，并设置 `ON DELETE CASCADE`，即删除用户时级联删除其保险库信息。
+* **检查约束 (Check Constraints):**
+    * `ck_vault_master_key_length`: 确保 `vault_master_key` 的长度为 32 字节。
+    * `ck_vault_salt_length`: 确保 `vault_salt` 的长度为 16 字节或为空。
+    * `ck_vault_iv_length`: 确保 `vault_iv` 的长度为 12 字节或为空。
+    * `ck_encrypted_private_key_length`: 确保 `encrypted_private_key` 的长度在 32 到 256 字节之间或为空。
+    * `ck_vault_ready`:  使用复杂的逻辑表达式确保当 `ready` 为 `TRUE` 时，`vault_salt`、`vault_iv` 和
+      `encrypted_private_key` 都不为空；反之亦然。
 
-### 3.2 索引维护
-- 定期重建索引以减少碎片
-- 监控索引使用情况和性能
-- 定期分析查询计划，优化索引策略
+## 3. 存储过程
 
-## 4. 存储过程
+本节详细描述了数据库中的所有存储过程。
 
-### 4.1 用户管理相关
+### 3.1 存储过程通用说明
 
-#### 4.1.1 check_username_available
-检查用户名是否可用
-- **输入参数**：
-  - username (VARCHAR(16)): ASCII字符串，最长16字符
-- **返回值**：BOOLEAN
-- **验证规则**：
-  - 用户名必须由字母、数字、连字符(-)、下划线(_)构成
-  - 用户名在user_profiles表中不存在
+* 所有存储过程都使用 `SECURITY DEFINER` 属性，表示它们以创建者的权限执行。
+* 存储过程的命名通常反映其功能，并使用下划线分隔单词。
+* 对于返回结果集的存储过程，通常返回一个 `TABLE` 类型。
 
-#### 4.1.2 register_user
-注册新用户
-- **输入参数**：
-  - username (VARCHAR(16)): ASCII字符串，最长16字符
-  - display_name (VARCHAR(32)): UTF-8字符串，最长32字符
-  - password_hash (BYTEA): 32字节定长
-  - password_salt (BYTEA): 16字节定长
-  - vault_master_key (BYTEA): 32字节定长
-  - user_id (UUID) [可选]: 用户唯一标识
-  - registered_at (TIMESTAMPTZ) [可选]: 注册时间
-- **返回值**：BOOLEAN
-- **处理流程**：
-  1. 调用check_username_available验证用户名
-  2. 检查UUID唯一性（如果提供）
-  3. 插入user_profiles表
-  4. 插入user_credentials表
-  5. 插入user_vaults表（仅vault_master_key）
-  6. 返回是否全部成功
+### 3.2 check_username_available
 
-#### 4.1.3 get_user_salt
-获取用户的密码盐值
-- **输入参数**：
-  - username (VARCHAR(16)): ASCII字符串
-- **返回值**：TABLE(user_id UUID, password_salt BYTEA)
-- **说明**：
-  - 如果用户不存在返回0行
-  - 存在则返回1行包含user_id和password_salt
+#### 3.2.1 功能描述
 
-#### 4.1.4 verify_login
-验证用户登录
-- **输入参数**：
-  - user_id (UUID): 用户唯一标识
-  - password_hash (BYTEA): 32字节密码散列
-- **返回值**：BOOLEAN
-- **验证规则**：
-  - 验证user_id存在
-  - 验证password_hash长度为32字节
-  - 比对存储的密码散列
+检查给定的用户名是否可用。首先验证用户名是否符合格式要求（只包含字母、数字、下划线和连字符，长度 1-16），然后检查数据库中是否已存在该用户名。
 
-#### 4.1.5 get_user_profile
-获取用户资料信息
-- **输入参数**：
-  - user_id (UUID): 用户唯一标识
-- **返回值**：TABLE(user_id UUID, username VARCHAR(16), display_name VARCHAR(32), public_key BYTEA, last_online TIMESTAMPTZ, registered_at TIMESTAMPTZ)
-- **说明**：
-  - 如果用户不存在返回0行
-  - 存在则返回1行完整的用户资料（不含idx）
+#### 3.2.2 输入
 
-#### 4.1.6 update_last_online
-更新用户最后在线时间
-- **输入参数**：
-  - user_id (UUID): 用户唯一标识
-  - timestamp (TIMESTAMPTZ): 可选的时间戳，默认为当前时间
-- **返回值**：void
-- **说明**：
-  - 更新user_profiles表中的last_online字段
-  - 如果未提供时间戳则使用CURRENT_TIMESTAMP
-  - 如果用户不存在则静默失败
+| 参数名        | 类型          | 说明       |
+|------------|-------------|----------|
+| p_username | VARCHAR(16) | 要检查的用户名。 |
 
-### 4.2 保险库管理相关
+#### 3.2.3 输出
 
-#### 4.2.1 create_vault
-创建用户保险库
-- **输入参数**：
-  - user_id (UUID): 用户唯一标识
-  - vault_salt (BYTEA): 16字节定长
-  - vault_iv (BYTEA): 12字节定长
-  - encrypted_private_key (BYTEA): 48-64字节
-  - public_key (BYTEA): 用户公钥
-- **返回值**：BOOLEAN
-- **验证规则**：
-  - 验证user_id存在且ready为False
-  - 验证所有输入的字节长度
-  - 更新用户公钥和保险库信息
-  - 设置ready为True
+| 参数名 | 类型      | 说明                              |
+|-----|---------|---------------------------------|
+|     | BOOLEAN | 如果用户名可用则返回 `TRUE`，否则返回 `FALSE`。 |
 
-#### 4.2.2 get_vault
-获取用户保险库信息
-- **输入参数**：
-  - user_id (UUID): 用户唯一标识
-- **返回值**：TABLE(vault_master_key BYTEA, vault_salt BYTEA, vault_iv BYTEA, encrypted_private_key BYTEA)
-- **说明**：
-  - 如果用户不存在返回0行
-  - 存在则返回1行保险库信息，包括未完成配置的保险库
-  - vault_salt、vault_iv、encrypted_private_key在未配置时为NULL
+#### 3.2.4 注意事项
 
-### 4.3 聊天相关
+无。
 
-#### 4.3.1 get_recent_sessions
-获取用户最近会话列表
-- **输入参数**：
-  - user_id (UUID): 用户唯一标识
-- **返回值**：TABLE(
-    session_id UUID,
-    initiator_id UUID,
-    participant_id UUID,
-    created_at TIMESTAMPTZ,
-    message_counter BIGINT,
-    last_message_id UUID,
-    last_message_at TIMESTAMPTZ
-  )
-- **说明**：
-  - 按last_message_at降序排序
-  - 自动更新用户最后在线时间
-  - 返回用户参与的所有会话
+### 3.3 register_user
 
-#### 4.3.2 get_unread_count
-获取会话未读消息数
-- **输入参数**：
-  - session_id (UUID): 会话唯一标识
-- **返回值**：INTEGER
-- **说明**：
-  - 返回会话中未读消息的数量
+#### 3.3.1 功能描述
 
-#### 4.3.3 get_first_unread
-获取会话首条未读消息ID
-- **输入参数**：
-  - user_id (UUID): 用户唯一标识
-  - session_id (UUID): 会话唯一标识
-- **返回值**：UUID
-- **说明**：
-  - 如果全部已读，返回最后一条消息的ID
-  - 如果没有消息，返回NULL
+注册一个新用户。该过程会执行以下操作：
 
-#### 4.3.4 get_messages_before
-获取指定游标之前的消息
-- **输入参数**：
-  - user_id (UUID): 用户唯一标识
-  - session_id (UUID): 会话唯一标识
-  - cursor (BIGINT): 消息游标，默认-1
-  - limit (INTEGER): 返回消息数量，默认50
-- **返回值**：TABLE(
-    message_id UUID,
-    cursor BIGINT,
-    is_sender BOOLEAN,
-    is_system BOOLEAN,
-    is_read BOOLEAN,
-    message_iv BYTEA,
-    message_content BYTEA
-  )
-- **说明**：
-  - cursor为-1时从最新消息开始
-  - 自动更新用户最后在线时间
-  - 自动标记返回的接收消息为已读
-  - 包含cursor指定的消息
+1. 验证用户名是否可用（调用 `check_username_available` 函数）。
+2. 验证提供的 `user_id` 是否唯一。
+3. 验证密码哈希、密码盐值和保险库主密钥的长度是否符合要求。
+4. 在一个事务中插入用户的基本信息到 `user_profiles` 表，凭证信息到 `user_credentials` 表，以及初始的保险库信息（仅包含主密钥）到
+   `user_vaults` 表。
+5. 如果任何步骤失败，则回滚事务并返回 `NULL`。
 
-#### 4.3.5 get_messages_after
-获取指定游标之后的消息
-- **输入参数**：
-  - user_id (UUID): 用户唯一标识
-  - session_id (UUID): 会话唯一标识
-  - cursor (BIGINT): 消息游标，默认-1
-  - limit (INTEGER): 返回消息数量，默认50
-- **返回值**：同get_messages_before
-- **说明**：
-  - cursor为-1时从最早消息开始
-  - 其他特性同get_messages_before
+#### 3.3.2 输入
 
-#### 4.3.6 send_message
-发送新消息
-- **输入参数**：
-  - user_id (UUID): 发送者ID
-  - session_id (UUID): 会话唯一标识
-  - message_iv (BYTEA): 消息初始化向量
-  - message_content (BYTEA): 消息密文
-  - is_system (BOOLEAN): 是否系统消息
-- **返回值**：BOOLEAN
-- **说明**：
-  - 自动递增消息计数器作为游标
-  - 更新会话的last_message_id和last_message_at
-  - 验证发送者身份和会话存在性
+| 参数名                | 类型          | 说明                        |
+|--------------------|-------------|---------------------------|
+| p_username         | VARCHAR(16) | 用户名。                      |
+| p_display_name     | VARCHAR(32) | 显示名称。                     |
+| p_password_hash    | BYTEA       | 密码的 Argon2id 哈希值 (32 字节)。 |
+| p_password_salt    | BYTEA       | 用于生成密码哈希的盐值 (16 字节)。      |
+| p_vault_master_key | BYTEA       | 用户的保险库主密钥 (32 字节)。        |
+| p_user_id          | UUID        | （可选）用户 ID，默认为自动生成。        |
+| p_registered_at    | TIMESTAMPTZ | （可选）注册时间，默认为当前时间。         |
 
-## 5. 数据安全
+#### 3.3.3 输出
 
-### 5.1 数据隔离
-- 敏感数据（如密码、密钥）与基本信息分离存储
-- 使用专门的user_vaults表存储加密相关数据
-- 所有密码和密钥相关字段使用BYTEA类型，避免字符编码问题
-- 严格控制字段长度，防止溢出攻击
+| 参数名 | 类型   | 说明                                   |
+|-----|------|--------------------------------------|
+|     | UUID | 如果注册成功，返回新用户的 `user_id`，否则返回 `NULL`。 |
 
-### 5.2 数据完整性
-- 使用外键约束确保数据关联的完整性
-- 使用CHECK约束确保数据格式的正确性
-- 所有表都使用CASCADE删除确保数据一致性
-- 使用BIGSERIAL和UUID确保标识符的唯一性
+#### 3.3.4 注意事项
 
-### 5.3 访问控制
-- 所有存储过程使用SECURITY DEFINER模式运行
-  - 以创建者权限执行而非调用者权限
-  - 确保数据访问的一致性和安全性
-- 使用专门的服务账号(e2ee_chat_service)
-  - 仅具有存储过程执行权限
-  - 禁止直接读写所有数据表
-  - 禁止修改任何数据库对象
+如果提供的用户名已被占用或 `user_id` 已存在，则注册失败。
 
-### 5.4 加密策略
-- 密码存储：
-  - 使用随机盐值(16字节)
-  - 密码散列固定为32字节
-  - 客户端进行密码散列，服务端仅存储
-- 消息加密：
-  - 每条消息使用唯一的IV(12字节)
-  - 消息内容使用端到端加密
-  - 密钥和IV永不重用
+### 3.4 get_user_salt
 
-### 5.5 审计和监控
-- 记录关键操作时间戳
-  - 用户注册时间
-  - 最后在线时间
-  - 消息发送时间
-- 使用事务确保操作原子性
-- 关键操作使用行级锁防止并发冲突
+#### 3.4.1 功能描述
+
+通过用户名获取用户的 `user_id` 和密码盐值。
+
+#### 3.4.2 输入
+
+| 参数名        | 类型          | 说明       |
+|------------|-------------|----------|
+| p_username | VARCHAR(16) | 要查询的用户名。 |
+
+#### 3.4.3 输出
+
+| 列名            | 类型    | 说明        |
+|---------------|-------|-----------|
+| user_id       | UUID  | 用户的唯一标识符。 |
+| password_salt | BYTEA | 用户的密码盐值。  |
+
+#### 3.4.4 注意事项
+
+无。
+
+### 3.5 verify_login
+
+#### 3.5.1 功能描述
+
+验证用户的登录凭证。通过提供的 `user_id` 和密码哈希值，与数据库中存储的密码哈希进行比较。
+
+#### 3.5.2 输入
+
+| 参数名             | 类型    | 说明                     |
+|-----------------|-------|------------------------|
+| p_user_id       | UUID  | 用户的唯一标识符。              |
+| p_password_hash | BYTEA | 用户提供的密码的 Argon2id 哈希值。 |
+
+#### 3.5.3 输出
+
+| 参数名 | 类型      | 说明                               |
+|-----|---------|----------------------------------|
+|     | BOOLEAN | 如果登录凭证有效则返回 `TRUE`，否则返回 `FALSE`。 |
+
+#### 3.5.4 注意事项
+
+输入的密码哈希长度必须为 32 字节。
+
+### 3.6 create_vault
+
+#### 3.6.1 功能描述
+
+完成用户的保险库配置。该过程会执行以下操作：
+
+1. 验证提供的 `user_id` 对应的用户存在且保险库尚未就绪（`ready` 为 `FALSE`）。
+2. 验证输入的盐值、初始化向量和加密私钥的长度是否符合要求。
+3. 在一个事务中更新 `user_profiles` 表中的 `public_key` 字段，并更新 `user_vaults` 表中的 `vault_salt`、`vault_iv`、
+   `encrypted_private_key` 字段，并将 `ready` 字段设置为 `TRUE`。
+4. 如果更新成功，则返回 `TRUE`，否则回滚事务并返回 `FALSE`。
+
+#### 3.6.2 输入
+
+| 参数名                     | 类型    | 说明                    |
+|-------------------------|-------|-----------------------|
+| p_user_id               | UUID  | 用户的唯一标识符。             |
+| p_vault_salt            | BYTEA | 保险库盐值 (16 字节)。        |
+| p_vault_iv              | BYTEA | 保险库初始化向量 (12 字节)。     |
+| p_encrypted_private_key | BYTEA | 加密后的用户私钥 (32-256 字节)。 |
+| p_public_key            | BYTEA | 用户的公钥 (32-256 字节)。    |
+
+#### 3.6.3 输出
+
+| 参数名 | 类型      | 说明                                |
+|-----|---------|-----------------------------------|
+|     | BOOLEAN | 如果保险库配置成功则返回 `TRUE`，否则返回 `FALSE`。 |
+
+#### 3.6.4 注意事项
+
+在调用此函数之前，应确保用户已登录并且拥有合法的保险库配置数据。
+
+### 3.7 get_vault
+
+#### 3.7.1 功能描述
+
+获取指定用户的完整保险库信息。
+
+#### 3.7.2 输入
+
+| 参数名       | 类型   | 说明        |
+|-----------|------|-----------|
+| p_user_id | UUID | 用户的唯一标识符。 |
+
+#### 3.7.3 输出
+
+| 列名                    | 类型      | 说明          |
+|-----------------------|---------|-------------|
+| vault_master_key      | BYTEA   | 用户的保险库主密钥。  |
+| vault_salt            | BYTEA   | 保险库盐值。      |
+| vault_iv              | BYTEA   | 保险库初始化向量。   |
+| encrypted_private_key | BYTEA   | 加密后的用户私钥。   |
+| ready                 | BOOLEAN | 保险库是否已配置完成。 |
+
+#### 3.7.4 注意事项
+
+无。
+
+### 3.8 get_user_profile
+
+#### 3.8.1 功能描述
+
+获取指定用户的完整资料信息。
+
+#### 3.8.2 输入
+
+| 参数名       | 类型   | 说明        |
+|-----------|------|-----------|
+| p_user_id | UUID | 用户的唯一标识符。 |
+
+#### 3.8.3 输出
+
+| 列名            | 类型          | 说明        |
+|---------------|-------------|-----------|
+| user_id       | UUID        | 用户的唯一标识符。 |
+| username      | VARCHAR(16) | 用户名。      |
+| display_name  | VARCHAR(32) | 显示名称。     |
+| public_key    | BYTEA       | 用户的公钥。    |
+| last_online   | TIMESTAMPTZ | 最后在线时间。   |
+| registered_at | TIMESTAMPTZ | 注册时间。     |
+
+#### 3.8.4 注意事项
+
+无。
+
+### 3.9 update_last_online
+
+#### 3.9.1 功能描述
+
+更新指定用户的最后在线时间。
+
+#### 3.9.2 输入
+
+| 参数名         | 类型          | 说明                   |
+|-------------|-------------|----------------------|
+| p_user_id   | UUID        | 用户的唯一标识符。            |
+| p_timestamp | TIMESTAMPTZ | （可选）要设置的时间戳，默认为当前时间。 |
+
+#### 3.9.3 输出
+
+无。
+
+#### 3.9.4 注意事项
+
+无。
+
+### 3.10 get_user_uuid_by_username
+
+#### 3.10.1 功能描述
+
+通过用户名获取用户的 UUID。
+
+#### 3.10.2 输入
+
+| 参数名        | 类型          | 说明       |
+|------------|-------------|----------|
+| p_username | VARCHAR(16) | 要查询的用户名。 |
+
+#### 3.10.3 输出
+
+| 参数名 | 类型   | 说明        |
+|-----|------|-----------|
+|     | UUID | 用户的唯一标识符。 |
+
+#### 3.10.4 注意事项
+
+无。
+
+### 3.11 get_recent_sessions
+
+#### 3.11.1 功能描述
+
+获取指定用户最近的会话列表，并按照最后消息时间降序排列。该过程会先更新用户的最后在线时间。
+
+#### 3.11.2 输入
+
+| 参数名       | 类型   | 说明        |
+|-----------|------|-----------|
+| p_user_id | UUID | 用户的唯一标识符。 |
+
+#### 3.11.3 输出
+
+| 列名              | 类型          | 说明         |
+|-----------------|-------------|------------|
+| session_id      | UUID        | 会话唯一标识符。   |
+| initiator_id    | UUID        | 会话发起者 ID。  |
+| participant_id  | UUID        | 会话参与者 ID。  |
+| created_at      | TIMESTAMPTZ | 会话创建时间。    |
+| message_counter | BIGINT      | 会话消息计数器。   |
+| last_message_id | UUID        | 最后一条消息 ID。 |
+| last_message_at | TIMESTAMPTZ | 最后一条消息时间。  |
+
+#### 3.11.4 注意事项
+
+无。
+
+### 3.12 get_unread_count
+
+#### 3.12.1 功能描述
+
+获取指定会话中，指定用户的未读消息数量。
+
+#### 3.12.2 输入
+
+| 参数名          | 类型   | 说明                |
+|--------------|------|-------------------|
+| p_session_id | UUID | 会话的唯一标识符。         |
+| p_user_id    | UUID | 要查询未读消息的用户的唯一标识符。 |
+
+#### 3.12.3 输出
+
+| 参数名 | 类型      | 说明       |
+|-----|---------|----------|
+|     | INTEGER | 未读消息的数量。 |
+
+#### 3.12.4 注意事项
+
+无。
+
+### 3.13 get_first_unread
+
+#### 3.13.1 功能描述
+
+获取指定会话中，指定用户的首条未读消息的 ID。如果所有消息都已读，则返回最后一条消息的 ID。
+
+#### 3.13.2 输入
+
+| 参数名          | 类型   | 说明        |
+|--------------|------|-----------|
+| p_user_id    | UUID | 用户的唯一标识符。 |
+| p_session_id | UUID | 会话的唯一标识符。 |
+
+#### 3.13.3 输出
+
+| 参数名          | 类型   | 说明                              |
+|--------------|------|---------------------------------|
+| v_message_id | UUID | 首条未读消息的 ID，如果全部已读则返回最后一条消息的 ID。 |
+
+#### 3.13.4 注意事项
+
+无。
+
+### 3.14 get_messages_before
+
+#### 3.14.1 功能描述
+
+获取指定会话中，指定游标（cursor）之前的消息列表。默认返回最新的 50 条消息。同时，**会将返回给接收者的消息标记为已读**。
+
+#### 3.14.2 输入
+
+| 参数名          | 类型      | 说明                                   |
+|--------------|---------|--------------------------------------|
+| p_user_id    | UUID    | 当前用户的唯一标识符。                          |
+| p_session_id | UUID    | 会话的唯一标识符。                            |
+| p_cursor     | BIGINT  | （可选）游标值，返回此游标之前的消息。默认为 -1，表示获取最新的消息。 |
+| p_limit      | INTEGER | （可选）返回的消息数量上限，默认为 50。                |
+
+#### 3.14.3 输出
+
+| 列名              | 类型          | 说明         |
+|-----------------|-------------|------------|
+| message_id      | UUID        | 消息的唯一标识符。  |
+| cursor          | BIGINT      | 消息在会话中的游标。 |
+| sender_id       | UUID        | 发送者的用户 ID。 |
+| receiver_id     | UUID        | 接收者的用户 ID。 |
+| is_system       | BOOLEAN     | 是否为系统消息。   |
+| is_read         | BOOLEAN     | 消息是否已读。    |
+| message_iv      | BYTEA       | 消息的初始化向量。  |
+| message_content | BYTEA       | 消息的密文内容。   |
+| sent_at         | TIMESTAMPTZ | 消息发送的时间戳。  |
+
+#### 3.14.4 注意事项
+
+* 如果 `p_cursor` 为 -1，则返回最新的 `p_limit` 条消息。
+* 返回的消息会根据 `cursor` 降序排列。
+* **重要:** 此函数会自动将返回给 `p_user_id` 的未读消息标记为已读。
+
+### 3.15 get_messages_after
+
+#### 3.15.1 功能描述
+
+获取指定会话中，指定游标（cursor）之后的消息列表。默认返回最早的 50 条消息。同时，**会将返回给接收者的消息标记为已读**。
+
+#### 3.15.2 输入
+
+| 参数名          | 类型      | 说明                                   |
+|--------------|---------|--------------------------------------|
+| p_user_id    | UUID    | 当前用户的唯一标识符。                          |
+| p_session_id | UUID    | 会话的唯一标识符。                            |
+| p_cursor     | BIGINT  | （可选）游标值，返回此游标之后的消息。默认为 -1，表示获取最早的消息。 |
+| p_limit      | INTEGER | （可选）返回的消息数量上限，默认为 50。                |
+
+#### 3.15.3 输出
+
+| 列名              | 类型          | 说明         |
+|-----------------|-------------|------------|
+| message_id      | UUID        | 消息的唯一标识符。  |
+| cursor          | BIGINT      | 消息在会话中的游标。 |
+| sender_id       | UUID        | 发送者的用户 ID。 |
+| receiver_id     | UUID        | 接收者的用户 ID。 |
+| is_system       | BOOLEAN     | 是否为系统消息。   |
+| is_read         | BOOLEAN     | 消息是否已读。    |
+| message_iv      | BYTEA       | 消息的初始化向量。  |
+| message_content | BYTEA       | 消息的密文内容。   |
+| sent_at         | TIMESTAMPTZ | 消息发送的时间戳。  |
+
+#### 3.15.4 注意事项
+
+* 如果 `p_cursor` 为 -1，则返回最早的 `p_limit` 条消息。
+* 返回的消息会根据 `cursor` 升序排列。
+* **重要:** 此函数会自动将返回给 `p_user_id` 的未读消息标记为已读。
+
+### 3.16 send_message
+
+#### 3.16.1 功能描述
+
+发送一条新消息到指定的会话。该过程会执行以下操作：
+
+1. 获取并锁定会话信息，防止并发修改。
+2. 验证会话是否存在，并且发送者是会话的参与者之一。
+3. 递增会话的消息计数器 (`message_counter`).
+4. 插入新消息到 `chat_messages` 表。
+5. 更新会话的最后消息 ID (`last_message_id`) 和最后消息时间 (`last_message_at`)。
+
+#### 3.16.2 输入
+
+| 参数名               | 类型      | 说明                       |
+|-------------------|---------|--------------------------|
+| p_user_id         | UUID    | 发送者的用户 ID。               |
+| p_session_id      | UUID    | 目标会话的唯一标识符。              |
+| p_message_iv      | BYTEA   | 消息的初始化向量 (12 字节)。        |
+| p_message_content | BYTEA   | 消息的密文内容。                 |
+| p_is_system       | BOOLEAN | （可选）是否为系统消息，默认为 `FALSE`。 |
+
+#### 3.16.3 输出
+
+| 参数名 | 类型      | 说明                               |
+|-----|---------|----------------------------------|
+|     | BOOLEAN | 如果消息发送成功则返回 `TRUE`，否则返回 `FALSE`。 |
+
+#### 3.16.4 注意事项
+
+* 发送者必须是指定会话的参与者才能发送消息。
+* 此操作会在数据库层面保证消息的 `cursor` 的唯一性和递增性。
+
+### 3.17 get_or_create_session
+
+#### 3.17.1 功能描述
+
+获取指定两个用户之间的会话。如果会话不存在，则创建一个新的会话。
+
+#### 3.17.2 输入
+
+| 参数名             | 类型   | 说明           |
+|-----------------|------|--------------|
+| p_user_id       | UUID | 当前用户的唯一标识符。  |
+| p_other_user_id | UUID | 另一个用户的唯一标识符。 |
+
+#### 3.17.3 输出
+
+| 参数名          | 类型   | 说明                                     |
+|--------------|------|----------------------------------------|
+| v_session_id | UUID | 现有会话的 ID，或新创建会话的 ID。如果用户不存在则返回 `NULL`。 |
+
+#### 3.17.4 注意事项
+
+* 会话的 `initiator_id` 和 `participant_id` 会按照用户 ID 的大小进行排序，以保证相同用户之间的会话始终具有相同的
+  `session_id`。
+* 在创建新会话之前，会检查 `p_other_user_id` 是否存在于 `user_profiles` 表中。
+
+### 3.18 get_session
+
+#### 3.18.1 功能描述
+
+获取指定会话的详细信息。只有会话的参与者才能获取会话信息。
+
+#### 3.18.2 输入
+
+| 参数名          | 类型   | 说明            |
+|--------------|------|---------------|
+| p_user_id    | UUID | 当前用户的唯一标识符。   |
+| p_session_id | UUID | 要获取的会话的唯一标识符。 |
+
+#### 3.18.3 输出
+
+| 列名              | 类型          | 说明         |
+|-----------------|-------------|------------|
+| session_id      | UUID        | 会话唯一标识符。   |
+| initiator_id    | UUID        | 会话发起者 ID。  |
+| participant_id  | UUID        | 会话参与者 ID。  |
+| created_at      | TIMESTAMPTZ | 会话创建时间。    |
+| message_counter | BIGINT      | 会话消息计数器。   |
+| last_message_id | UUID        | 最后一条消息 ID。 |
+| last_message_at | TIMESTAMPTZ | 最后一条消息时间。  |
+
+#### 3.18.4 注意事项
+
+只会返回 `p_user_id` 是会话发起者或参与者的会话信息。
+
+### 3.19 get_message
+
+#### 3.19.1 功能描述
+
+获取指定消息的详细信息。只有消息的发送者或接收者才能获取消息信息。如果用户是接收者且消息未读，则会将消息标记为已读。
+
+#### 3.19.2 输入
+
+| 参数名          | 类型   | 说明            |
+|--------------|------|---------------|
+| p_user_id    | UUID | 当前用户的唯一标识符。   |
+| p_message_id | UUID | 要获取的消息的唯一标识符。 |
+
+#### 3.19.3 输出
+
+| 列名              | 类型          | 说明         |
+|-----------------|-------------|------------|
+| message_id      | UUID        | 消息的唯一标识符。  |
+| session_id      | UUID        | 所属会话的 ID。  |
+| cursor          | BIGINT      | 消息在会话中的游标。 |
+| sender_id       | UUID        | 发送者的用户 ID。 |
+| receiver_id     | UUID        | 接收者的用户 ID。 |
+| is_system       | BOOLEAN     | 是否为系统消息。   |
+| is_read         | BOOLEAN     | 消息是否已读。    |
+| message_iv      | BYTEA       | 消息的初始化向量。  |
+| message_content | BYTEA       | 消息的密文内容。   |
+| sent_at         | TIMESTAMPTZ | 消息发送的时间戳。  |
+
+#### 3.19.4 注意事项
+
+* 只会返回 `p_user_id` 是消息发送者或接收者的消息信息。
+* **重要:** 如果 `p_user_id` 是消息的接收者并且消息未读，此函数会自动将消息标记为已读。
+
+## 4. 数据库用户
+
+本节描述了用于程序操作的数据库用户及其权限。
+
+### 4.1 e2ee_chat_service
+
+#### 4.1.1 权限说明
+
+该用户拥有以下权限：
+
+* 连接到 `e2ee_chat` 数据库 (`CONNECT`)。
+* 执行指定的存储过程 (`EXECUTE`)，包括：
+* `check_username_available(VARCHAR)`
+* `register_user(VARCHAR, VARCHAR, BYTEA, BYTEA, BYTEA, UUID, TIMESTAMPTZ)`
+* `get_user_salt(VARCHAR)`
+* `verify_login(UUID, BYTEA)`
+* `create_vault(UUID, BYTEA, BYTEA, BYTEA, BYTEA)`
+* `get_vault(UUID)`
+* `get_user_profile(UUID)`
+* `update_last_online(UUID, TIMESTAMPTZ)`
+* `get_user_uuid_by_username(VARCHAR)`
+* `get_recent_sessions(UUID)`
+* `get_unread_count(UUID, UUID)`
+* `get_first_unread(UUID, UUID)`
+* `get_messages_before(UUID, UUID, BIGINT, INTEGER)`
+* `get_messages_after(UUID, UUID, BIGINT, INTEGER)`
+* `send_message(UUID, UUID, BYTEA, BYTEA, BOOLEAN)`
+* `get_or_create_session(UUID, UUID)`
+* `get_session(UUID, UUID)`
+* `get_message(UUID, UUID)`
+
+#### 4.1.2 权限原因
+
+`e2ee_chat_service` 是应用程序使用的数据库服务账号。为了安全起见，它被授予了最小必要的权限，即只能连接数据库并执行预定义的存储过程。
+这种做法符合最小权限原则，可以有效降低安全风险，防止应用程序直接操作数据表或执行其他未授权的操作。 该用户没有直接操作表、序列或执行其他函数的权限。
