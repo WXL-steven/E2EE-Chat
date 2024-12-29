@@ -80,8 +80,8 @@ E2EE-Chat 是一个基于 Java EE 构建的端到端加密聊天平台demo。该
 
 1. 克隆仓库
 ```bash
-git clone https://github.com/{your-github-username}/{your-repo-name}.git
-cd {your-repo-name}
+git clone https://github.com/WXL-steven/E2EE-Chat.git
+cd E2EE-Chat
 ```
 
 2. 初始化数据库
