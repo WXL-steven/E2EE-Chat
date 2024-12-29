@@ -46,7 +46,7 @@ public class SessionDAO {
 
             return sessions;
         } catch (SQLException e) {
-            throw new RuntimeException("获取最近会话列表失败", e);
+            throw new RuntimeException("获取最近会话列表失败: " + e.getMessage(), e);
         }
     }
 
@@ -224,8 +224,8 @@ public class SessionDAO {
         session.setParticipantId((UUID) rs.getObject("participant_id"));
         session.setCreatedAt(rs.getObject("created_at", OffsetDateTime.class));
         session.setMessageCounter(rs.getLong("message_counter"));
-        session.setLastMessageId(rs.getObject("last_message_id", Object.class) instanceof UUID ? (UUID) rs.getObject("last_message_id") : null);
-        session.setLastMessageAt(rs.getObject("last_message_at", Object.class) instanceof OffsetDateTime ? rs.getObject("last_message_at", OffsetDateTime.class) : null);
+        session.setLastMessageId(rs.getObject("last_message_id") instanceof UUID ? (UUID) rs.getObject("last_message_id") : null);
+        session.setLastMessageAt(rs.getObject("last_message_at") instanceof OffsetDateTime ? rs.getObject("last_message_at", OffsetDateTime.class) : null);
         return session;
     }
 

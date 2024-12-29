@@ -10,6 +10,9 @@
 
 ## 项目简介
 
+![项目预览](docs/images/image.png)
+*项目预览*
+
 E2EE-Chat 是一个基于 Java EE 构建的端到端加密聊天平台demo。该平台旨在提供安全可靠的通信方式，确保用户的消息内容只能被通信双方解密，从而保护用户隐私。
 
 本项目利用现代 Web 技术和强大的加密算法，提供了一套完整的用户管理、密钥管理和会话管理机制，为用户提供安全便捷的聊天体验。
@@ -123,7 +126,7 @@ cp target/e2ee-chat.war $CATALINA_HOME/webapps/
 npx tailwindcss -i ./src/main/webapp/assets/css/dev/styles.css -o ./src/main/webapp/assets/css/dist/styles.css
 ```
 
-或者使用 bun:
+或者使用 bun：
 
 ```bash
 bunx tailwindcss -i ./src/main/webapp/assets/css/dev/styles.css -o ./src/main/webapp/assets/css/dist/styles.css
@@ -135,7 +138,7 @@ bunx tailwindcss -i ./src/main/webapp/assets/css/dev/styles.css -o ./src/main/we
 npx tailwindcss -i ./src/main/webapp/assets/css/dev/styles.css -o ./src/main/webapp/assets/css/dist/styles.css --watch
 ```
 
-或者使用 bun:
+或者使用 bun：
 
 ```bash
 bunx tailwindcss -i ./src/main/webapp/assets/css/dev/styles.css -o ./src/main/webapp/assets/css/dist/styles.css --watch

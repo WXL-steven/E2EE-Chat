@@ -1,7 +1,5 @@
 package com.steven.e2eechat.dto.web;
 
-import java.util.Base64;
-
 /**
  * {@code CreateVaultRequest} DTO 用于封装客户端创建用户保险库的请求数据。
  * <p>
@@ -15,12 +13,12 @@ public class CreateVaultRequest {
     private String publicKey;
 
     /**
-     * 获取 Base64 编码的保险库盐值并解码为字节数组。
+     * 获取 Base64 编码的保险库盐值。
      *
-     * @return 解码后的保险库盐值字节数组。
+     * @return Base64 编码的保险库盐值字符串。
      */
-    public byte[] getVaultSalt() {
-        return Base64.getDecoder().decode(vaultSalt);
+    public String getVaultSalt() {
+        return vaultSalt;
     }
 
     /**
@@ -33,12 +31,12 @@ public class CreateVaultRequest {
     }
 
     /**
-     * 获取 Base64 编码的保险库初始化向量 (IV) 并解码为字节数组。
+     * 获取 Base64 编码的保险库初始化向量 (IV)。
      *
-     * @return 解码后的保险库 IV 字节数组。
+     * @return Base64 编码的保险库 IV 字符串。
      */
-    public byte[] getVaultIv() {
-        return Base64.getDecoder().decode(vaultIv);
+    public String getVaultIv() {
+        return vaultIv;
     }
 
     /**
@@ -51,12 +49,12 @@ public class CreateVaultRequest {
     }
 
     /**
-     * 获取 Base64 编码的加密后私钥并解码为字节数组。
+     * 获取 Base64 编码的加密后私钥。
      *
-     * @return 解码后的加密私钥字节数组。
+     * @return Base64 编码的加密私钥字符串。
      */
-    public byte[] getEncryptedPrivateKey() {
-        return Base64.getDecoder().decode(encryptedPrivateKey);
+    public String getEncryptedPrivateKey() {
+        return encryptedPrivateKey;
     }
 
     /**
@@ -69,12 +67,12 @@ public class CreateVaultRequest {
     }
 
     /**
-     * 获取 Base64 编码的公钥并解码为字节数组。
+     * 获取 Base64 编码的公钥。
      *
-     * @return 解码后的公钥字节数组。
+     * @return Base64 编码的公钥字符串。
      */
-    public byte[] getPublicKey() {
-        return Base64.getDecoder().decode(publicKey);
+    public String getPublicKey() {
+        return publicKey;
     }
 
     /**
